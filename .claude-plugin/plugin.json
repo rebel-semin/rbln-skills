@@ -1,0 +1,9 @@
+{
+  "name": "rbln-skills",
+  "description": "Rebellions RBLN NPU 작업을 위한 Claude Code 스킬 모음",
+  "version": "0.1.0",
+  "author": {
+    "name": "rebel-semin"
+  },
+  "homepage": "https://github.com/rebel-semin/rbln-skills"
+}
