@@ -15,6 +15,10 @@ Claude Code에서:
 설치 후 `/rbln-skills:<스킬명>`으로 호출하거나, 관련 작업을 하면 Claude가
 알아서 로드합니다. 갱신은 `/plugin marketplace update rbln-skills`.
 
+이 저장소는 private이라 설치하는 쪽에 이 저장소를 읽을 수 있는 git 인증이
+있어야 합니다 (`gh auth login` 또는 SSH 키). 인증이 없으면
+`marketplace add`가 clone 단계에서 실패합니다.
+
 플러그인 없이 스킬 하나만 쓰려면 심볼릭 링크로도 됩니다.
 
 ```bash

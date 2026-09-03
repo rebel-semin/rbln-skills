@@ -43,15 +43,19 @@ skills/<skill-name>/SKILL.md
 씁니다. 판단 기준은
 [authoring-guide.md](skills/rbln-skill-template/references/authoring-guide.md)에 있습니다.
 
-## 공개 저장소 주의
+## 담지 않는 것
 
-퍼블릭 저장소입니다. 다음은 넣지 않습니다.
+현재 private 저장소지만, 스킬 내용은 Claude에게 통째로 전달되고 나중에
+공개 전환될 수도 있습니다. 다음은 넣지 않습니다.
 
-- 사내 호스트명, 사내 IP, 토큰·키
+- 토큰·API 키·인증서 (private이어도 예외 없음)
+- 사내 호스트명, 사내 IP
 - 고객사명, 계약 정보
-- 미공개 제품/실리콘 코드명, 미공개 벤치마크 수치
+- 미공개 제품/실리콘 코드명
 
-필요하면 `<HOST>`, `<CUSTOMER>` 같은 자리표시자를 씁니다.
+필요하면 `<HOST>`, `<CUSTOMER>` 같은 자리표시자를 씁니다. 미공개 벤치마크
+수치는 저장소가 private인 동안에는 넣어도 되지만, 공개 전환 시 제거할 수
+있도록 `references/`에 모아 둡니다.
 
 ## 검증한 것만 쓴다
 
