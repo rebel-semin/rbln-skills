@@ -5,13 +5,13 @@
     "url": "https://github.com/rebel-semin"
   },
   "description": "Rebellions RBLN NPU 관련 Claude Code 스킬 모음",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "plugins": [
     {
       "name": "rbln-skills",
       "source": "./",
       "description": "RBLN SDK/NPU 작업용 스킬 모음 (컴파일, 서빙, 트러블슈팅)",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "rebel-semin"
       }

@@ -32,6 +32,11 @@ ln -s "$PWD/rbln-skills/skills/rbln-skill-template" ~/.claude/skills/rbln-skill-
 |---|---|---|
 | `rbln-dataviz` | Rebellions 2026 Deck Guide 를 지키는 차트·표·KPI 콜아웃 작성 | `/rbln-skills:rbln-dataviz` |
 | `rbln-skill-template` | 이 저장소에 새 스킬을 추가할 때 쓰는 템플릿 겸 체크리스트 | `/rbln-skills:rbln-skill-template` |
+| `rbln-env-doctor` | ATOM/RBLN 컨테이너 점검: device 가시성, `/opt/python`·버전 확인, `rbln-smi` PID로 배치 증명, 스레드·env·`--no-deps` 규칙 | `/rbln-skills:rbln-env-doctor` |
+| `rbln-port` | 모델을 ATOM에 올리는 절차: optimum 클래스 → shim → `compile_from_torch` L1, CPU stage breakdown으로 offload 순서 결정, 정확성 사다리 | `/rbln-skills:rbln-port` |
+| `rbln-compile-debug` | `RBLNCompileError`, `DEVICE_GRAPH_CONVERSION`, segfault, config 제약 등 컴파일 실패 분류와 hostile op 재작성 매핑 | `/rbln-skills:rbln-compile-debug` |
+| `rbln-precision-check` | ATOM vs CPU fp32 정확성 게이트, bf16 downcast 누적 localize, task별 metric 선택 | `/rbln-skills:rbln-precision-check` |
+| `rbln-profile` | stage wall time + `RBLN_PROFILER` 커널 트레이스로 compute-bound / DMA-bound 판정, 서빙 엔진 트레이스 회수 | `/rbln-skills:rbln-profile` |
 
 새 스킬을 추가하면 이 표에 한 줄 추가합니다.
 
