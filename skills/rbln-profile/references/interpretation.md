@@ -1,70 +1,80 @@
-# 트레이스 해석 규칙과 관측 사례 (ATOM-Max, Qwen3-ASR-1.7B fp32 아티팩트)
+# Interpretation rules and observed cases (ATOM-Max, Qwen3-ASR-1.7B fp32 artifact)
 
-## 판정 규칙
+## Verdict rules
 
-- **compute-bound**: Neural Engine busy ≥ 90% of span, DMA-only 구간 작음.
-- **weight-DMA-bound**: Neural DMA busy ≥ 90%, NE `comp_cycle` 합이 작음(NE busy는 DMA
-  대기 포함), Neural DMA 상위 family가 `linear`.
-- **activation/KV 전송**: Task DMA 이동 바이트가 크고 `paged_attn` family가 Task DMA에.
-- **호스트 병목**: 1층에서 gap + host prep이 20% 이상. 2층 `Host` 트랙만으로는 판단 불가.
+- **compute-bound**: Neural Engine busy ≥ 90% of span, little DMA-only time.
+- **weight-DMA-bound**: Neural DMA busy ≥ 90%, summed NE `comp_cycle` small (NE
+  busy includes waiting on DMA), and the top Neural DMA family is `linear`.
+- **activation / KV transfer**: large Task DMA byte movement with the
+  `paged_attn` family on Task DMA.
+- **host-bound**: layer 1 shows gaps plus host prep above 20%. The `Host` track
+  alone cannot establish this.
 
-## 사례: 배치-1 hybrid ASR (62초 클립, 192 token)
+## Case: batch-1 hybrid ASR (62 s clip, 192 tokens)
 
-1층 (profiler OFF, 5 run):
+Layer 1 (profiler off, 5 runs):
 
-| 구간 | p50 | 전체 대비 |
+| Segment | p50 | Share |
 |---|---:|---:|
 | audio tower (ATOM) | 55.7 ms | 1.7% |
 | embedding + masked_scatter (CPU) | 2.8 ms | 0.1% |
-| prefill (ATOM, 1024 chunk 1회) | 177 ms | 5.3% |
-| decode 191 step | 15.88 ms/step (합 3,036 ms) | 91.4% |
-| generate loop host gap | 0.25 ms/step (합 50 ms) | 1.5% |
+| prefill (ATOM, one 1024 chunk) | 177 ms | 5.3% |
+| decode, 191 steps | 15.88 ms/step (3,036 ms total) | 91.4% |
+| generate-loop host gap | 0.25 ms/step (50 ms total) | 1.5% |
 
-step 분포 p50 15.88 / p95 15.93 / max 16.20 ms (균질). host 합계 0.3 ms/token(2%) →
-루프 최적화 여지 없음.
+Step distribution p50 15.88 / p95 15.93 / max 16.20 ms (uniform). Host total is
+0.3 ms per token (2%), so there is nothing to win in the loop.
 
-2층 (16 token 트레이스):
+Layer 2 (16-token trace):
 
-| phase | device span | NE busy | Neural DMA busy | Task DMA moved | 판정 |
+| Phase | Device span | NE busy | Neural DMA busy | Task DMA moved | Verdict |
 |---|---:|---:|---:|---:|---|
 | audio tower | 54.7 ms | 95% | 12% | 0.6 GB | compute-bound (linear 22.8, conv 14.9, SDPA 5.7 ms) |
 | prefill | 176 ms | 94% | 20% | 4.47 GB | compute-bound (linear 140, paged_attn_prefill 17.5 ms) |
 | decode step | 15.7 ms | 79% | **97%** | 1 MB | **weight-DMA-bound** |
 
-decode 세부: Neural DMA 15.2 ms 중 14.2 ms가 `linear`(fp32 가중치 스트리밍). DMA만
-도는 구간 3.2 ms, NE만 0.4 ms. NE comp_cycle 2.74M → 실제 compute 몫 ~7%. 최대 단일
-op `linear_196` = lm_head (151936×2048 fp32 ≈ 1.24 GB) 2.64 ms = step의 17%. step당
-스트리밍 ~6.9 GB / 15.2 ms ≈ 450 GB/s 유효.
+Decode detail: of 15.2 ms Neural DMA, 14.2 ms is `linear` (streaming fp32
+weights). DMA-only time 3.2 ms, NE-only 0.4 ms. NE comp_cycles total 2.74M, so
+actual compute is about 7%. The largest single op, `linear_196` = lm_head
+(151936×2048 fp32, about 1.24 GB), takes 2.64 ms = 17% of the step. Streaming per
+step is roughly 6.9 GB in 15.2 ms, about 450 GB/s effective.
 
-함의: decode는 가중치 바이트에 비례. 16-bit weight면 step 최대 ~2배, lm_head만
-저정밀화해도 ~8%. prefill/audio tower는 compute-bound고 전체 7%라 우선순위 낮음.
+Implication: decode scales with weight bytes. 16-bit weights could nearly halve
+the step; lowering only lm_head's precision is worth about 8%. Prefill and the
+audio tower are compute-bound and together only 7% of the total, so they rank low.
 
-## 사례: 서빙 (vllm-rbln, 3초 클립, N=3 폐루프)
+## Case: serving (vllm-rbln, 3 s clips, closed loop at N=3)
 
 | | chunk 1024 | chunk 128 |
 |---|---:|---:|
-| prefill span p50 | 176 ms (63 token인데 1024 패딩 전부 계산) | 22 ms |
-| device busy 내역 | prefill 61.5% / decode 36.8% / audio 1.4% | decode 79.4% / prefill 17.0% / audio 3.0% |
-| 같은 40초 처리 요청 | 77 | 155 |
+| prefill span p50 | 176 ms (a 63-token prompt padded to 1024 and fully computed) | 22 ms |
+| device busy split | prefill 61.5% / decode 36.8% / audio 1.4% | decode 79.4% / prefill 17.0% / audio 3.0% |
+| requests served in the same 40 s | 77 | 155 |
 
-→ "KV 9%인데 Waiting>0", "처리량이 N에 아선형"의 원인은 device 포화였고 주범은
-prefill 패딩. 칩당 동시 한계 2 → 9 (RTF 0.5 기준).
+So "KV at 9% yet Waiting > 0" and "throughput sublinear in N" both came from
+device saturation, and the saturation came from prefill padding. Per-chip
+concurrency at RTF 0.5 went from 2 to 9.
 
-## 사례: decoder batch bucket 사다리 (1/2/4/8/16/32)
+## Case: the decoder batch bucket ladder (1/2/4/8/16/32)
 
-| 실행 행 수 | 1 | 4 | 8 | **9** | 16 |
+| Running rows | 1 | 4 | 8 | **9** | 16 |
 |---|--:|--:|--:|--:|--:|
 | step ms | 15.5 | 17.2 | 18.9 | **26.4** | 28.0 |
 
-9행이 16행 버킷으로 패딩되어 KV 읽기 2배 → 40% 점프. 운영 동시성은 버킷 경계에.
+Nine rows pad up to the 16-row bucket, doubling KV reads for a 40% jump. Pick
+operating concurrency at a bucket edge.
 
-## 사례: speculative decoding 비용 구조
+## Case: the cost structure of speculative decoding
 
-verify(5 token/행)는 1-token decode 대비 +7~19%만 비싸다(DMA-bound라 예상대로). 비용은
-draft(0.6B step 6.1~6.4 ms × K)와 요청당 draft prefill(+11.6 ms)에 있다. 배치-1 1.51x,
-서빙 N≥4에서는 prefill 직렬화와 배치 파편화로 손해.
+Verification (5 tokens per row) costs only 7–19% more than a 1-token decode,
+exactly as a DMA-bound step predicts. The cost sits in the draft (a 0.6B step at
+6.1–6.4 ms × K) and in one extra draft prefill per request (+11.6 ms). Net 1.51×
+at batch 1; a loss at serving N ≥ 4 from prefill serialization and batch
+fragmentation.
 
-## 사례: host sampler
+## Case: the host sampler
 
-`[b,1,151936]` float32 logits 전송이 비용의 실체. 샘플링 b=1 0.2 ms → b=16 1.2 ms
-(step의 2~4%). 그래프 argmax fusion의 상한도 그만큼. 포화 전 p50 −4~5%, 포화 후 무효.
+The real cost is transferring `[b, 1, 151936]` float32 logits. Sampling itself is
+0.2 ms at b=1 rising to 1.2 ms at b=16 (2–4% of a step), which also caps what
+graph-side argmax fusion can win. Measured −4 to −5% p50 before saturation, and
+nothing after.

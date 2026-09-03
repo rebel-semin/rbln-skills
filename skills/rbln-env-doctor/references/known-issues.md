@@ -1,33 +1,35 @@
-# 자주 만나는 증상
+# Frequent symptoms
 
-| 증상 | 원인 | 해결 |
+| Symptom | Cause | Fix |
 |---|---|---|
-| `rebel.device_count() == 0` | `/dev/rsd0` 미마운트 | `docker run --device /dev/rsd0 --device /dev/rblnN ...` |
-| 컨테이너가 바로 종료 | entrypoint가 bash가 아님 / `tail -f /dev/nul` 오타 | `--entrypoint bash ... sleep infinity` |
-| 3 GB 모델 다운로드 hang | HF xet 백엔드 | `HF_HUB_DISABLE_XET=1` |
-| `libavutil.so.*` 없음 | torchcodec의 FFmpeg 의존 | `apt install -y ffmpeg` |
-| `No module named rebel` | 시스템 python3.10 사용 | `/opt/python/bin/python` |
-| optimum-rbln / rebel-compiler version mismatch ImportWarning | base version 상이 | 비치명적. 두 버전 기록 |
-| `ValueError: ... model type qwen3_asr but Transformers does not recognize` | pin된 transformers가 신모델을 모름 | 모델 backend 패키지를 `--no-deps`로 설치 (transformers 업그레이드 금지) |
-| `AutoTokenizer`가 tokenizer를 못 로드 (`extra_special_tokens`가 list) | transformers 버전 차이 | `tokenizers` 라이브러리로 `tokenizer.json` 직접 로드 |
-| Ctrl-C 후 컨테이너에 프로세스 잔존 | `docker exec`만 종료됨 | 실행 토큰을 env로 넣고 guard가 컨테이너 child를 `pkill` |
-| pwd lookup 오류 (Torch/getpass) | 숫자 uid에 /etc/passwd 항목 없음 | `-e HOME=/tmp -e USER=<name> -e LOGNAME=<name>` |
-| `RBLN_DEVICE_MAP=1`을 줬는데 device 0에서 실행 | 설치 SDK가 그 변수를 소비하지 않음 | `Runtime(device=N)` / `rbln_device=N` |
-| 컴파일 중 "Global num_threads state changed while dynamo tracing" | `RBLN_NUM_THREADS` ≠ torch threads | 두 값 일치, 컴파일 중 `set_num_threads` 호출 제거 |
-| CPU baseline 스레드가 64로 기록 (32로 설정했는데) | ATOM 실행이 Torch 전역 스레드 변경 | ATOM 실행 전 캡처 |
-| 여러 엔진 동시 실행 시 4~5배 느려짐, loadavg > CPU 수 | 엔진당 코어 수만큼 스레드 + busy-poll | `--cpuset-cpus`(물리 4~8코어+HT, 칩 NUMA node) + `--cpuset-mems` |
-| 서빙 요청의 `max_tokens`가 무시됨 | transcriptions 엔드포인트 필드명 | `max_completion_tokens` |
-| 서빙 엔진 기동 시 FileNotFoundError로 EngineCore 종료 | adapter가 HF snapshot(CPU 측 모듈)을 요구 | 모델 디렉터리에 `hf/hub/models--.../snapshots/*` 포함 |
-| ssh 끊겨도 원격 loadgen 계속 실행 | 프로세스 분리 | 측정 전 `pgrep -af "[l]oadgen.py"` 확인 |
-| 컴파일러 audio tower torch.compile 실패 (스레드) | 컴파일 스레드 env와 런타임 스레드 env 불일치 | 컴파일 시 `RBLN_NUM_THREADS == COMPILE_THREADS` |
+| `rebel.device_count() == 0` | `/dev/rsd0` not mounted | add both `/dev/rsd0` and `/dev/rblnN` to the container's device list |
+| container exits immediately | entrypoint is not bash, or a typo in the keep-alive command | override the entrypoint to bash and keep the container alive with `sleep infinity` |
+| a multi-GB model download hangs | HF xet backend | `HF_HUB_DISABLE_XET=1` |
+| `libavutil.so.*` missing | torchcodec's FFmpeg dependency | install the system ffmpeg package |
+| `No module named rebel` | using the system python3.10 | `/opt/python/bin/python` |
+| optimum-rbln / rebel-compiler version-mismatch ImportWarning | differing base versions | non-fatal; record both versions |
+| `ValueError: ... model type <x> but Transformers does not recognize` | the pinned transformers predates the model | install the model's backend package with `--no-deps` (do not upgrade transformers) |
+| `AutoTokenizer` cannot load the tokenizer (`extra_special_tokens` is a list) | transformers version difference | load `tokenizer.json` directly with the `tokenizers` library |
+| processes survive in the container after Ctrl-C | only the exec client was killed | pass a run token via env and have a guard terminate the container children by that token |
+| pwd lookup errors from Torch/getpass | a numeric uid with no /etc/passwd entry | set `HOME`, `USER` and `LOGNAME` in the exec environment |
+| `RBLN_DEVICE_MAP=1` set, still runs on device 0 | the installed SDK does not consume that variable | `Runtime(device=N)` / `rbln_device=N` |
+| "Global num_threads state changed while dynamo tracing" | `RBLN_NUM_THREADS` differs from the Torch thread count | match them and remove `set_num_threads` calls during compilation |
+| CPU baseline recorded 64 threads although 32 was set | ATOM execution mutated Torch's global thread count | capture the value before ATOM runs |
+| several engines together run 4-5x slower, loadavg above the CPU count | each engine takes core-count threads and busy-polls | pin each engine to 4-8 physical cores plus HT siblings on the chip's NUMA node via the container cpuset |
+| a serving request's `max_tokens` is ignored | field name on the transcriptions endpoint | use `max_completion_tokens` |
+| the engine core exits with FileNotFoundError at startup | the adapter expects an HF snapshot (the CPU-side modules) | include the `hf/hub/models--.../snapshots/*` tree under the model directory |
+| a remote load generator keeps running after ssh drops | detached process | check for a live load generator process before measuring |
+| audio-tower torch.compile fails during compilation (threads) | compile-time and runtime thread env differ | set `RBLN_NUM_THREADS` equal to the compile thread count |
 
-## 컨테이너 실행 예 (자리표시자)
+## Container launch checklist (placeholders)
 
-```bash
-docker run -d --name <NAME> \
-  --device /dev/rsd0 --device /dev/rbln16 --device /dev/rbln17 \
-  --env HF_HUB_CACHE=/hub --env HF_HUB_DISABLE_XET=1 \
-  -v <HOST_HF_CACHE>:/hub -v <WORKSPACE>:/workspace \
-  <RBLN_IMAGE> sleep infinity
-# 안에서 /dev/rbln16,17 은 0,1
-```
+Whatever tooling launches the container, it must provide:
+
+- devices: `/dev/rsd0` **and** every `/dev/rblnN` the workload uses
+- env: `HF_HUB_CACHE=<cache path>`, `HF_HUB_DISABLE_XET=1`
+- mounts: the HF cache and the workspace
+- image: `<RBLN_IMAGE>` (driver tools only in some images; install the Python SDK
+  yourself)
+- a keep-alive command so the container does not exit
+
+Remember that host `/dev/rbln16,17` appear as ids 0,1 inside the container.

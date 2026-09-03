@@ -1,28 +1,29 @@
-# L1/L2 레시피: 손으로 쓰는 decoder + 공유 CompileContext
+# L1 / L2 recipe: a hand-written decoder with a shared CompileContext
 
-Whisper-large-v3에서 optimum WhisperWrapper를 직접 재작성해 optimum 대비 text 동일,
-latency 1.01x를 확인한 경로. optimum이 내부에서 쓰는 것과 같은 계약이다.
+This is the path used to rewrite optimum's WhisperWrapper by hand and still get
+identical text at 1.01× the latency. It is the same contract optimum uses
+internally.
 
-## L2: compile 계약 (모델 무관, 그대로 재사용)
+## L2: the compile contract (model-independent, reuse as-is)
 
 ```python
 import rebel
 from rebel.compile_context import CompileContext
 
 def register_optimum_ops():
-    import optimum.rbln.ops  # paged_causal_attn_*, rbln_cache_update 등 등록
+    import optimum.rbln.ops  # registers paged_causal_attn_*, rbln_cache_update, ...
 
 def mark_static_kv(ctx, input_info, example_inputs, key="key_value_states"):
     statics = {}
     for (name, _shape, _dtype), tensor in zip(input_info, example_inputs):
         if key in name:
             statics[name] = tensor
-            ctx.mark_static_address(tensor)   # compile에 넘기는 바로 그 tensor
+            ctx.mark_static_address(tensor)   # the very tensor passed to compile
     return statics
 
 ctx = CompileContext(use_weight_sharing=False)
 statics = mark_static_kv(ctx, enc_info, enc_ex)
-dec_ex = build_decoder_inputs(dec_info, statics)   # decoder는 같은 cross-KV tensor를 받음
+dec_ex = build_decoder_inputs(dec_info, statics)   # decoder receives the same cross-KV tensors
 mark_static_kv(ctx, dec_info, dec_ex)
 
 cenc = rebel.compile_from_torch(enc.eval(), input_info=enc_info,
@@ -30,23 +31,24 @@ cenc = rebel.compile_from_torch(enc.eval(), input_info=enc_info,
 cdec = rebel.compile_from_torch(dec.eval(), input_info=dec_info,
                                 example_inputs=dec_ex, compile_context=ctx)
 
-enc_rt = rebel.Runtime(cenc, device=0, tensor_type="pt")   # 호출 사이에 살아 있어야 함
+enc_rt = rebel.Runtime(cenc, device=0, tensor_type="pt")   # must outlive the calls
 dec_rt = rebel.Runtime(cdec, device=0, tensor_type="pt")
 ```
 
-`input_info`는 `[(name, shape, dtype_str), ...]`. Runtime을 함수 안에서 매번 만들면
-persistent KV 수명이 끊긴다. 저장/복원은 `compiled.save(path)` →
+`input_info` is `[(name, shape, dtype_str), ...]`. Creating the Runtime inside
+the call breaks persistent KV lifetime. To persist and reload:
+`compiled.save(path)` then
 `rebel.RBLNCompiledModel(path).create_runtime(device=N, tensor_type="pt")`.
 
-## L1: Whisper decoder 재작성에서 한 일
+## L1: what the Whisper decoder rewrite actually did
 
-1. encoder 출력으로 cross-attention K/V를 미리 계산해 static buffer에 write:
+1. Precompute cross-attention K/V from the encoder output into a static buffer:
    ```python
    cross_key_values = torch.ops.rbln_custom_ops.rbln_cache_update(
        cross_key_values, cross_kv, b_idx[0], batch_axis)
    ```
-2. 동적 position 대신 `embed_positions.weight[position_id]` 직접 indexing.
-3. self-attention KV write + causal attention을 custom op으로:
+2. Index `embed_positions.weight[position_id]` instead of computing positions.
+3. Replace the self-attention KV write plus causal attention with a custom op:
    ```python
    attn_output = torch.ops.rbln_custom_ops.paged_causal_attn_decode(
        q=q, k=k, v=v,
@@ -56,28 +58,31 @@ persistent KV 수명이 끊긴다. 저장/복원은 `compiled.save(path)` →
        scale=torch.tensor(1.0, dtype=torch.float32),
        block_table=block_tables, block_size=block_size, mask=None)
    ```
-4. cross-attention은 static cross-KV 위의 plain matmul.
+4. Implement cross-attention as a plain matmul over the static cross-KV.
 
-## L3: generate 연결
+## L3: wiring generate
 
-재작성한 runtime을 optimum 모델 객체의 `encoder`/`decoder` 자리에 꽂아 **같은
-HF/optimum generate**를 재사용한다. 단순 재구성 harness에서는 30초 chunk 경계 단어가
-깨졌고, 같은 generate에 연결하자 full-clip text가 다시 동일해졌다. stride, logits
-processor, timestamp, stop condition은 orchestration이 소유한다.
+Substitute the rewritten runtimes for the optimum model's `encoder` / `decoder`
+so the **same HF/optimum generate** still drives them. A simplified
+reconstruction harness corrupted words at the 30-second chunk boundary; wiring
+it back into the original generate restored identical full-clip text. Stride,
+logits processors, timestamps and stop conditions belong to the orchestration.
 
-## stateless 모듈 (encoder, DiT, conformer)
+## Stateless modules (encoder, DiT, conformer)
 
-KV가 없으면 L2에서 `mark_static_kv`가 필요 없다. `compile_from_torch`로 고정 shape
-컴파일 후 `RBLNCompiledModel.save`/`create_runtime`. Nemotron FastConformer는 custom op
-없이 plain matmul attention으로 컴파일됐다 (`optimum.rbln.ops` import 불필요).
+With no KV there is nothing to mark static. Compile at fixed shapes with
+`compile_from_torch`, then `RBLNCompiledModel.save` / `create_runtime`. The
+Nemotron FastConformer compiled with plain matmul attention and no custom ops, so
+`optimum.rbln.ops` was never imported.
 
-## 새 모델 체크리스트
+## Checklist for a new model
 
-- [ ] `use_cache=True`에서 decode loop의 KV layout 확인
-- [ ] `index_copy_`, 동적 position, mask 생성 등 hostile op 식별
-- [ ] position embedding / RoPE를 static-friendly로 바꿀 수 있는지
-- [ ] self-attention을 paged/custom op으로 치환 가능한지
-- [ ] cross-attention / tower 출력을 static buffer로 넘길 수 있는지
-- [ ] CPU eager vs 재작성 wrapper token parity probe
-- [ ] generate orchestration 재사용 adapter
-- [ ] long-form / chunk 경계 text 확인
+- [ ] Determine the KV layout the decode loop uses under `use_cache=True`
+- [ ] Identify hostile ops: `index_copy_`, dynamic positions, mask construction
+- [ ] Decide whether position embeddings / RoPE can be made static-friendly
+- [ ] Decide whether self-attention maps onto a paged / custom op
+- [ ] Decide whether cross-attention or tower output can be handed over as a
+      static buffer
+- [ ] Write a CPU-eager vs rewritten-wrapper token parity probe
+- [ ] Write the adapter that reuses the existing generate orchestration
+- [ ] Check text at long-form / chunk boundaries

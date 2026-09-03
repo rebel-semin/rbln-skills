@@ -13,99 +13,110 @@ description: >-
   benchmark must prove which chip it ran on.
 ---
 
-# RBLN 환경 점검
+# Checking an RBLN environment
 
-하드웨어 작업 전에 device 가시성, 인터프리터, 버전, 실제 배치를 순서대로 증명한다.
-"doctor"는 실제로 작은 그래프를 컴파일해 device에서 돌리므로 **사용 중인 device에는
-실행하지 않는다.**
+Before any hardware work, prove device visibility, the interpreter, the versions
+and the actual placement, in that order. The probe really compiles and runs a
+small graph on the chip, so **never run it on a device in use.**
 
-## 적용 조건
+## When this applies
 
-- 새 컨테이너/호스트에서 첫 컴파일 전.
-- `device_count = 0`, import 실패, 버전 경고, 배치 불확실 중 하나가 보인다.
-- 벤치마크 결과에 "어느 칩에서 돌았는지" 증거가 필요하다.
+- First compile in a new container or on a new host.
+- You are seeing one of: `device_count = 0`, an import failure, a version
+  warning, or uncertainty about placement.
+- A benchmark result needs evidence of which chip it ran on.
 
-## 절차
+## Procedure
 
-### 1. device 가시성
-
-```bash
-ls -l /dev/rsd* /dev/rbln*        # 둘 다 있어야 함
-rbln-smi                          # device 표, KMD 버전
-```
-
-- `/dev/rsd0`이 없으면 `rebel.device_count()`가 0이다. 컨테이너에 `--device /dev/rsd0`
-  추가 (rbln 장치만 마운트하면 부족).
-- 컨테이너 안의 id는 **container-visible id**다. 호스트 `/dev/rbln16~19`를 마운트하면
-  안에서는 0~3. 칩 하나만 `/dev/rblnN:/dev/rbln0`으로 재번호 마운트하면 항상 0.
-  모든 config/flag는 안쪽 id를 쓴다.
-- ATOM-Max(RBLN-CA25) 카드 하나는 논리 device 4개로 보인다. 논리 device당 약 15.7 GiB.
-
-### 2. 인터프리터와 패키지
+### 1. Device visibility
 
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/env_report.sh          # 아래 항목을 한 번에 출력
+ls -l /dev/rsd* /dev/rbln*        # both must be present
+rbln-smi                          # device table, KMD version
 ```
 
-확인 항목:
+- Without `/dev/rsd0`, `rebel.device_count()` returns 0. Add `/dev/rsd0` to the
+  container's device list (mounting only the rbln devices is not enough).
+- Ids inside the container are **container-visible ids**. Mounting host
+  `/dev/rbln16-19` makes them 0-3 inside. Renumbering a single chip to
+  `/dev/rbln0` makes it always 0. Every config and flag uses the inside id.
+- One ATOM-Max (RBLN-CA25) card appears as 4 logical devices, roughly 15.7 GiB
+  each.
 
-- `rebel`을 가진 python은 보통 `/opt/python/bin/python`. 시스템 python3.10에서는
-  `No module named rebel`.
-- `import torch, rebel, optimum.rbln`이 한 프로세스에서 성공.
-- `optimum-rbln`과 `rebel-compiler`의 base version이 다르면 ImportWarning이 나온다.
-  검증된 조합에서는 비치명적이지만 **두 버전을 결과에 모두 기록**한다.
-  버전 표는 [references/versions.md](references/versions.md).
-- HF cache 경로가 쓰기 가능한지 (`HF_HUB_CACHE`). 공유 `/hub`는 컨테이너 사용자가
-  쓸 수 있을 때만.
+### 2. Interpreter and packages
 
-### 3. 배치 증명 (idle device에서만)
+```bash
+${CLAUDE_SKILL_DIR}/scripts/env_report.sh          # prints everything below at once
+```
+
+What to confirm:
+
+- The python that has `rebel` is usually `/opt/python/bin/python`. The system
+  python3.10 gives `No module named rebel`.
+- `import torch, rebel, optimum.rbln` all succeed in one process.
+- If optimum-rbln and rebel-compiler have different base versions you get an
+  ImportWarning. It is non-fatal on the validated combination, but **record both
+  versions in the result**. Table:
+  [references/versions.md](references/versions.md).
+- The HF cache path is writable (`HF_HUB_CACHE`). Use a shared cache directory
+  only if the container user can write to it.
+
+### 3. Prove placement (idle devices only)
 
 ```bash
 /opt/python/bin/python ${CLAUDE_SKILL_DIR}/scripts/device_probe.py --devices 0
 ```
 
-작은 그래프를 `compile_from_torch`로 컴파일해 `Runtime(device=N)`으로 실행하고,
-출력이 맞는지와 `rbln-smi` 출력의 device N 행에 현재 PID가 있는지 둘 다 확인한다.
-JSON 한 줄(`ATOM_LAB_DEVICE_PROOF=...`)을 출력하며 `ok: true`가 아니면 실패.
+It compiles a tiny graph with `compile_from_torch`, runs it through
+`Runtime(device=N)`, and checks both that the output is correct and that
+`rbln-smi` shows the current PID on device N's row. It prints one JSON line
+(`ATOM_LAB_DEVICE_PROOF=...`); anything other than `ok: true` is a failure.
 
-배치 규칙:
+Placement rules:
 
-- 손 작성 경로: `rebel.Runtime(compiled, device=N, tensor_type="pt")`.
-- optimum: `rbln_device=N` 또는 `rbln_config.device_map`.
-- `RBLN_DEVICE_MAP=1` 같은 환경변수 추측은 하지 않는다. 검증된 SDK에서 Runtime은
-  여전히 device 0에 생성됐다.
-- 서빙 컨테이너(vllm-rbln)는 `RBLN_DEVICES=<container id>`.
-- 개별 device 배치 증명은 그 모델의 multi-device/TP 동작을 보장하지 않는다.
+- Hand-written path: `rebel.Runtime(compiled, device=N, tensor_type="pt")`.
+- optimum: `rbln_device=N` or `rbln_config.device_map`.
+- Do not guess at environment variables. On the validated SDK the Runtime still
+  landed on device 0 despite `RBLN_DEVICE_MAP=1`.
+- Serving containers (vllm-rbln) use `RBLN_DEVICES=<container id>`.
+- Proving individual device placement does not validate a model's multi-device or
+  tensor-parallel behaviour.
 
-### 4. 스레드와 환경변수
+### 4. Threads and environment variables
 
-- `RBLN_NUM_THREADS`: 컴파일 중에는 `torch.get_num_threads()`와 같아야 한다
-  (다르면 "Global num_threads state changed while dynamo tracing").
-- RBLN 런타임은 Torch 전역 스레드 수를 바꾼다. CPU baseline 스레드 수는 ATOM 실행
-  전에 캡처.
-- 서빙 엔진은 bare-metal에서 코어 수만큼 스레드를 잡고 busy-poll한다. 여러 엔진을
-  띄우면 `--cpuset-cpus`로 물리 4~8코어+HT(칩의 NUMA node)에 고정해야 host가 포화하지
-  않는다. vllm-rbln은 cpuset을 감지해 스레드를 맞춘다.
-- `HF_HUB_DISABLE_XET=1`: 대용량 다운로드 hang 방지.
-- 컨테이너 사용자가 숫자 uid면 `HOME`, `USER`, `LOGNAME`을 넣어야 Torch/getpass가
-  pwd lookup에서 죽지 않는다.
+- `RBLN_NUM_THREADS` must equal `torch.get_num_threads()` during compilation,
+  otherwise you get "Global num_threads state changed while dynamo tracing".
+- The RBLN runtime mutates Torch's global thread count. Capture the CPU baseline
+  thread count before ATOM runs.
+- On bare metal a serving engine grabs as many threads as there are cores and
+  busy-polls. Running several engines requires pinning each to 4-8 physical cores
+  plus their HT siblings (the chip's NUMA node) through the container's cpuset;
+  vllm-rbln detects the cpuset and sizes its thread pool accordingly.
+- `HF_HUB_DISABLE_XET=1` prevents large-download hangs.
+- If the container user is a numeric uid, set `HOME`, `USER` and `LOGNAME` so
+  Torch/getpass do not die in a pwd lookup.
 
-### 5. 추가 의존성
+### 5. Extra dependencies
 
-핀(torch, transformers, optimum-rbln, rebel-compiler)을 깨지 않도록 모델 전용 패키지는
-`pip install --no-deps <pkg>==<ver>`로 설치하고 import를 확인한다. 예: `qwen-asr`는
-transformers 4.57.6 pin을 유지하기 위해 `--no-deps`. torchcodec은 `apt install ffmpeg`
-필요. 자주 만나는 증상은 [references/known-issues.md](references/known-issues.md).
+To avoid breaking the pins (torch, transformers, optimum-rbln, rebel-compiler),
+install model-specific packages with `pip install --no-deps <pkg>==<ver>` and
+verify the import. For example `qwen-asr` needs `--no-deps` to keep
+transformers 4.57.6. torchcodec needs the system ffmpeg package. Frequent
+symptoms: [references/known-issues.md](references/known-issues.md).
 
-## 완료 조건
+## Done when
 
-1. `rbln-smi`와 `rebel.device_count()`가 기대한 device 수를 보인다.
-2. SDK python에서 `torch`, `rebel`, `optimum.rbln` import 성공, 두 버전 기록.
-3. 사용할 device마다 probe `ok: true` (출력 정확 + rbln-smi PID 매칭).
-4. 스레드 수와 필수 환경변수가 결정되어 컴파일/벤치 스크립트에 반영됐다.
+1. `rbln-smi` and `rebel.device_count()` both report the expected device count.
+2. `torch`, `rebel` and `optimum.rbln` import under the SDK python, and both
+   versions are recorded.
+3. Every device you plan to use returns `ok: true` from the probe (correct output
+   plus a matching `rbln-smi` PID).
+4. The thread count and required environment variables are decided and reflected
+   in the compile / benchmark scripts.
 
-## 검증 환경
+## Verified against
 
-ATOM-Max(RBLN-CA25), KMD 3.2.x, rebel-compiler 0.10.5.dev143 + optimum-rbln 0.10.4
-(배치-1), rebel-compiler / optimum-rbln 0.11.0.post1 + vllm-rbln 0.11.0 (서빙).
-Python 3.12 (`/opt/python`). 세부는 [references/versions.md](references/versions.md).
+ATOM-Max (RBLN-CA25), KMD 3.2.x, rebel-compiler 0.10.5.dev143 + optimum-rbln
+0.10.4 (batch-1), rebel-compiler / optimum-rbln 0.11.0.post1 + vllm-rbln 0.11.0
+(serving). Python 3.12 (`/opt/python`). Detail:
+[references/versions.md](references/versions.md).

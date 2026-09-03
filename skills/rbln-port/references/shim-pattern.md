@@ -1,10 +1,10 @@
-# shim 패턴: 서브스택을 기존 RBLN 클래스에 태우기
+# Shim pattern: a sub-stack onto an existing RBLN class
 
-Qwen3-ASR-1.7B에서 검증된 형태. text stack(`thinker.model`, `thinker.lm_head`)을 원본
-그대로 감싸 optimum의 Qwen3 decoder-only 런타임(static KV, paged attention,
-prefill/decode 분리)을 재사용했다.
+Validated on Qwen3-ASR-1.7B. The text stack (`thinker.model`,
+`thinker.lm_head`) is wrapped as-is so that optimum's Qwen3 decoder-only runtime
+(static KV, paged attention, prefill/decode split) can be reused.
 
-## shim 클래스
+## The shim class
 
 ```python
 import copy
@@ -19,7 +19,7 @@ class ASRTextCausalLMShim(PreTrainedModel):
         text_config._attn_implementation = "eager"
         text_config._attn_implementation_internal = "eager"
         super().__init__(text_config)
-        self.model = thinker.model          # 원본 모듈, 복사 아님
+        self.model = thinker.model          # original module, not a copy
         self.lm_head = thinker.lm_head
         self.vocab_size = thinker.config.text_config.vocab_size
         self.generation_config = GenerationConfig(
@@ -44,7 +44,7 @@ class ASRTextCausalLMShim(PreTrainedModel):
         })()
 ```
 
-## 컴파일
+## Compiling it
 
 ```python
 from optimum.rbln import RBLNQwen3ForCausalLM, RBLNQwen3ForCausalLMConfig
@@ -53,10 +53,10 @@ compiled = RBLNQwen3ForCausalLM.from_model(
     shim, config=shim.config,
     rbln_config=RBLNQwen3ForCausalLMConfig(
         batch_size=1, max_seq_len=1024,
-        use_inputs_embeds=True,      # audio-merged embedding 주입
+        use_inputs_embeds=True,      # inject audio-merged embeddings
         use_attention_mask=True, use_position_ids=False,
         attn_impl="eager",
-        prefill_chunk_size=128,      # 프롬프트를 한 패스로 덮는 최소값 (1024는 패딩 낭비)
+        prefill_chunk_size=128,      # smallest chunk covering the prompt; 1024 wastes padding
         kvcache_block_size=1024,     # eager: == max_seq_len
         kvcache_num_blocks=1,
         dtype="float32", device=device,   # container-visible id
@@ -65,28 +65,33 @@ compiled = RBLNQwen3ForCausalLM.from_model(
 )
 ```
 
-## 실행 (hybrid generate)
+## Running it (hybrid generate)
 
-1. audio tower는 별도 static wrapper로 ATOM에 (fixed feature length).
-2. host에서 token embedding + audio embedding `masked_scatter` (수 ms).
-3. `inputs_embeds`로 optimum generate. `input_ids`는 HF bookkeeping용으로 그대로 전달.
-4. optimum runtime이 Tensor를 반환하는 경우와 output object를 반환하는 경우 모두 처리.
+1. Compile the audio tower separately as a static wrapper on ATOM (fixed feature
+   length).
+2. On the host, `masked_scatter` the audio embeddings into the token embeddings
+   (a few ms).
+3. Call optimum generate with `inputs_embeds`; still pass `input_ids` for HF
+   bookkeeping.
+4. Handle both return types from the optimum runtime (Tensor and output object).
 
-## 확인된 함정
+## Confirmed pitfalls
 
-- 가중치를 plain HF `Qwen3ForCausalLM`에 복사: state_dict는 맞지만 3D position id에서
-  실패, 2D fallback은 logits/argmax 불일치. **원본 모듈 보존이 핵심.**
-- eager attention → `kvcache_block_size == max_seq_len`.
-- 아티팩트: prefill 3.3 GB, decoder_batch_1 15 MB, torch_artifacts 1.2 GB (1.7B fp32,
-  max_seq_len 1024). 아티팩트 크기 ≠ 런타임 device 메모리.
-- 서빙에서 같은 그래프를 쓰려면 `decoder_batch_sizes` 사다리와 audio bucket을
-  컴파일 시 정한다. 실행 배치는 상한 버킷으로 패딩된다.
+- Copying weights into a plain HF `Qwen3ForCausalLM`: the state dict loads with
+  no missing keys, but 3D position ids fail and the 2D fallback disagrees on
+  logits/argmax. **Keeping the original modules is the point.**
+- Eager attention requires `kvcache_block_size == max_seq_len`.
+- Artifacts: prefill 3.3 GB, `decoder_batch_1` 15 MB, torch artifacts 1.2 GB
+  (1.7B fp32, max_seq_len 1024). Artifact size is not runtime device memory.
+- To reuse the same graphs for serving, fix the `decoder_batch_sizes` ladder and
+  the audio buckets at compile time. The running batch is padded up to the next
+  bucket.
 
-## 결과 (62.455초 클립, greedy, 배치 1)
+## Result (62.455 s clip, greedy, batch 1)
 
-| 항목 | 값 |
+| Item | Value |
 |---|---|
-| CPU fp32 32thr p50 | 52~53 s |
+| CPU fp32, 32 threads, p50 | 52–53 s |
 | ATOM hybrid p50 / p95 | 3.31 / 3.32 s |
 | token parity | 192/192 exact |
-| stage | audio tower 56 ms, prefill 177 ms, decode 191 × 15.8 ms, host gap 0.25 ms/step |
+| stages | audio tower 56 ms, prefill 177 ms, decode 191 × 15.8 ms, host gap 0.25 ms/step |

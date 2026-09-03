@@ -1,11 +1,13 @@
-# 포팅 경로 결정 트리 (비용 낮은 순)
+# Porting decision tree (cheapest first)
 
-## 1. optimum-rbln 전체 지원
+## 1. optimum-rbln supports the whole model
 
-확인: 설치본의 `optimum/rbln/transformers/models/<model>/` 존재, `RBLN<Model>ForXxx`
-클래스 존재. 0.10.4 기준 주요 지원: whisper, llama, gemma/2/3, mistral, qwen2/qwen3,
-qwen2_5_vl, qwen3_vl, qwen3_moe, gpt2, t5, bart, bert, clip, siglip, vit, wav2vec2,
-AST; diffusers는 SD/SD3/SDXL/Cosmos/Kandinsky + `RBLNAutoencoderKL`.
+Check: `optimum/rbln/transformers/models/<model>/` exists in the installed
+package and an `RBLN<Model>ForXxx` class is exported. As of 0.10.4 the notable
+coverage is whisper, llama, gemma/2/3, mistral, qwen2/qwen3, qwen2_5_vl,
+qwen3_vl, qwen3_moe, gpt2, t5, bart, bert, clip, siglip, vit, wav2vec2, AST; on
+the diffusers side SD / SD3 / SDXL / Cosmos / Kandinsky plus
+`RBLNAutoencoderKL`.
 
 ```python
 from optimum.rbln import RBLNAutoModelForSpeechSeq2Seq
@@ -16,51 +18,61 @@ model = RBLNAutoModelForSpeechSeq2Seq.from_pretrained(
 model.save_pretrained("whisper-large-v3")
 ```
 
-export, load, generate, device option을 공식 경로로 먼저 검증한 뒤 wrapper를 고민한다.
+Validate export, load, generate and device options through the official path
+before considering any wrapper.
 
-## 2. 서브스택 shim
+## 2. Shim a sub-stack
 
-조건: 전체 클래스는 없지만 text decoder / vision encoder가 기존 architecture와
-구조적으로 같다 (layer 구성, attention, rotary). 확인 방법:
+Condition: no full class exists, but a text decoder or vision encoder is
+structurally the same as an existing architecture (layer composition, attention,
+rotary). How to check:
 
-1. 원본 서브모듈의 `state_dict` 키와 대상 optimum architecture의 기대 키 비교.
-2. 원본 config를 optimum config 클래스로 변환 가능한지 (`text_config` 등).
-3. position id 차원, rotary table, special token 처리가 같은지. 다르면 원본 모듈을
-   **그대로** shim 안에 두고 forward만 노출한다 (가중치 복사 금지).
+1. Compare the sub-module's `state_dict` keys against the keys the target
+   optimum architecture expects.
+2. Confirm the original config converts into the optimum config class
+   (`text_config` and friends).
+3. Confirm position-id rank, the rotary table and special-token handling match.
+   If they differ, keep the original modules **as they are** inside the shim and
+   only expose `forward` — do not copy weights.
 
-성공 사례: Qwen3-ASR thinker text stack → `RBLNQwen3ForCausalLM`.
-실패 사례: 같은 가중치를 plain `Qwen3ForCausalLM`에 복사 → 3D position id 불일치.
+Success: the Qwen3-ASR thinker text stack onto `RBLNQwen3ForCausalLM`.
+Failure: copying those same weights into a plain `Qwen3ForCausalLM`, where 3D
+position ids did not apply.
 
-## 3. L1 손 작성
+## 3. Hand-written L1
 
-조건: 새 attention 구조(conformer relative-position, RNN-T joint), DiT, 새 MoE,
-custom KV layout.
+Condition: a novel attention structure (conformer relative position, an RNN-T
+joint), a DiT, a new MoE, or a custom KV layout.
 
-시작 순서:
+Order of work:
 
-1. CPU reference와 가장 작은 representative static workload 고정.
-2. 컴포넌트 분리(preprocess / encoder / decoder step / cache update / head / postprocess).
-3. stock 그래프를 고정 shape로 컴파일 시도 → 첫 실패 op 최소화.
-4. optimum 설치본(`<model>_architecture.py`, `decoderonly/`, `ops/`)과 vllm-rbln
-   adapter에서 같은 문제의 해법 검색.
-5. 동적 인덱싱/mutation/mask/position을 static buffer, fixed bucket, tensor masking,
-   precomputed tensor, custom op으로 치환.
-6. control flow와 경량 작업은 host, heavy tensor는 ATOM.
-7. 각 재작성마다 component parity, 통합 후 e2e parity.
+1. Fix the CPU reference and the smallest representative static workload.
+2. Split components (preprocess / encoder / decoder step / cache update / head /
+   postprocess).
+3. Try the stock graph at fixed shapes, then minimize the first failing op.
+4. Search the installed optimum-rbln (`<model>_architecture.py`, `decoderonly/`,
+   `ops/`) and applicable vllm-rbln adapters for the same problem.
+5. Replace dynamic indexing / mutation / masks / position math with static
+   buffers, fixed buckets, tensor masking, precomputed tensors or custom ops.
+6. Move control flow and lightweight work to the host; keep heavy tensor work on
+   ATOM.
+7. Re-check component parity after each rewrite, then end-to-end parity after
+   integration.
 
-## 어느 것을 먼저 올리나
+## What to offload first
 
-CPU stage breakdown에서 시간이 큰 것부터. 관측된 패턴:
+Highest CPU stage time first. Observed pattern:
 
-| 모델 | CPU에서 큰 stage | 결과 |
+| Model | Large CPU stages | Outcome |
 |---|---|---|
-| Whisper-large-v3 | decoder+lm 45.8s, encoder 20.2s (총 68.9s) | encoder만 torch.compile → 1.2x; 전체 optimum → 13.5x |
-| Qwen3-ASR-1.7B | text decode 39.5s + lm_head decode 7.8s (총 49.5s), audio tower 0.55s | audio+lm_head → 1.2x; text/KV shim → 15~16x |
-| Nemotron 0.6B RNN-T | encoder 408ms, RNN-T greedy loop 523ms | encoder만 → 1.81x (encoder 자체 13x). 다음은 decode step |
-| Z-Image-Turbo | DiT 8회 forward가 지배 | DiT만 compile_from_torch, text-enc/VAE는 planned-hybrid |
+| Whisper-large-v3 | decoder+lm 45.8 s, encoder 20.2 s (68.9 s total) | encoder-only torch.compile → 1.2×; full optimum path → 13.5× |
+| Qwen3-ASR-1.7B | text decode 39.5 s + lm_head decode 7.8 s (49.5 s total), audio tower 0.55 s | audio + lm_head → 1.2×; text/KV shim → 15–16× |
+| Nemotron 0.6B RNN-T | encoder 408 ms, RNN-T greedy loop 523 ms | encoder only → 1.81× e2e (encoder itself 13×). Decode step is next |
+| Z-Image-Turbo | 8 DiT forwards dominate | DiT via compile_from_torch; text encoder and VAE stay planned-hybrid |
 
-## vLLM-RBLN은 source reference
+## vLLM-RBLN is a source reference
 
-LLM/VLM backbone이 있으면 vllm-rbln의 attention mode, sampler, model adapter를
-참고한다. 하지만 서빙 런타임이므로 배치-1 latency 실험 구조를 scheduler에 맞추지
-않고, throughput 수치를 latency 결과에 섞지 않는다.
+For a model with an LLM or VLM backbone, read vllm-rbln's attention modes,
+sampler and model adapters. It is a serving runtime though: do not reshape a
+batch-1 latency experiment around its scheduler, and never mix its throughput
+numbers into a latency result.

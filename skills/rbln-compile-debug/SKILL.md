@@ -12,97 +12,112 @@ description: >-
   Korean triggers: 컴파일 실패, 컴파일 에러, unsupported op, 그래프 변환 실패.
 ---
 
-# RBLN 컴파일 실패 진단
+# Diagnosing an RBLN compile failure
 
-컴파일 실패 하나는 포팅 종료 조건이 아니다. 실패 그래프를 최소화하고, 정확히 어떤
-op 또는 state transition이 문제인지 찍은 뒤, 의미를 보존하는 재작성으로 우회한다.
-"blocked"는 최소 재현과 서로 다른 우회 시도 실패가 함께 있을 때만 선언한다.
+One compile failure is not a stop condition for a port. Minimize the failing
+graph, identify the exact op or state transition that breaks, then route around
+it with a semantics-preserving rewrite. Declare a component blocked only when a
+minimized reproducer plus materially different alternatives have all failed.
 
-## 적용 조건
+## When this applies
 
-- `rebel.compile_from_torch`, `torch.compile(backend="rbln")`, 또는 optimum-rbln
-  `RBLN<Model>.from_model / from_pretrained(export=True)`가 예외나 crash로 끝났다.
-- 컴파일은 됐지만 실행 시 일부 stage가 host(CPU)에서 도는 것으로 의심된다.
+- `rebel.compile_from_torch`, `torch.compile(backend="rbln")`, or an optimum-rbln
+  `RBLN<Model>.from_model / from_pretrained(export=True)` ended in an exception
+  or a crash.
+- Compilation succeeded but you suspect a stage is silently running on the host.
 
-## 절차
+## Procedure
 
-### 1. 에러 원문을 잡고 분류한다
+### 1. Capture the error and classify it
 
-전체 traceback과 stderr를 저장한다. 첫 줄이 아니라 **첫 번째 RBLN 오류**를 본다.
-분류표는 [references/error-catalog.md](references/error-catalog.md).
+Save the full traceback and stderr. Read the **first** RBLN error, not the last
+line. Full catalog: [references/error-catalog.md](references/error-catalog.md).
 
-| 증상 | 분류 |
+| Symptom | Class |
 |---|---|
-| `RBLNCompileError ... [DEVICE_GRAPH_CONVERSION]`, `tensor<...{mem_loc = "host"}>` vs device output | A. 그래프 안의 동적 host 연산 |
-| Dynamo graph break warning (`Tensor.item()`, `tolist`, dynamic slicing) | A. 같은 원인, torch.compile 경로 |
-| `librbln.so` segfault, exit 139, graph optimization 중 crash | B. autoregressive KV 계약을 torch.compile로 표현 |
-| `kvcache_block_size`, `prefill_chunk_size % 64`, `kvcache_partition_len` assertion | C. optimum-rbln config 제약 |
-| `Global num_threads state changed while dynamo tracing` | D. 컴파일 중 스레드 수 변경 |
-| 특정 op 이름이 unsupported로 명시됨 | A 또는 E(대체 op 필요) |
+| `RBLNCompileError ... [DEVICE_GRAPH_CONVERSION]`, `tensor<...{mem_loc = "host"}>` vs device output | A. dynamic host work inside the graph |
+| Dynamo graph break warning (`Tensor.item()`, `tolist`, dynamic slicing) | A. same cause, torch.compile path |
+| `librbln.so` segfault, exit 139, crash during graph optimization | B. autoregressive KV contract expressed through torch.compile |
+| `kvcache_block_size`, `prefill_chunk_size % 64`, `kvcache_partition_len` assertion | C. optimum-rbln config constraint |
+| `Global num_threads state changed while dynamo tracing` | D. thread count changed mid-compile |
+| A specific op is named unsupported | A, or E if a replacement op is needed |
 
-### 2. 실패 그래프를 최소화한다
+### 2. Minimize the failing graph
 
-1. 모듈을 preprocessing / encoder(tower) / decoder step / cache update / head로 분리해
-   각각 고정 shape로 컴파일한다. 성공하는 것과 실패하는 것을 표로 남긴다.
-2. 실패 모듈에서 forward를 반으로 잘라 가며 첫 실패 op을 찾는다. strict 모드에서는
-   silent fallback이 없으므로 실패 지점이 곧 원인이다.
-3. 재현 스크립트는 가중치 없이(random init) 돌아가게 만든다. 컴파일러 이슈 보고에도
-   그대로 쓸 수 있다.
+1. Split the model into preprocessing / encoder (tower) / decoder step / cache
+   update / head and compile each at fixed shapes. Tabulate what compiles and
+   what does not.
+2. Inside the failing module, bisect `forward` until you reach the first failing
+   op. Strict mode does not fall back silently, so the failure point is the cause.
+3. Make the reproducer run with random weights. It is then usable as-is for a
+   compiler bug report.
 
-### 3. 분류별 조치
+### 3. Fix by class
 
-**A. 동적 host 연산이 그래프에 들어갔다**
-`ceil`, `tolist`, `split`, `pad_sequence`, `Tensor.item()`, 동적 position 계산,
-그래프 내부 attention mask 생성이 대표적이다.
-[references/op-rewrites.md](references/op-rewrites.md)의 매핑표로 재작성한다.
-핵심 패턴은 **고정 shape에 대해 host에서 1회 계산 → 그래프에는 고정 tensor로 전달**.
-재작성 모듈은 먼저 CPU에서 원본과 bit-exact(`max_abs == 0`)임을 확인한 뒤 컴파일한다.
+**A. Dynamic host work leaked into the graph.**
+Typical offenders: `ceil`, `tolist`, `split`, `pad_sequence`, `Tensor.item()`,
+runtime position arithmetic, attention-mask construction inside the graph.
+Rewrite using the mapping table in
+[references/op-rewrites.md](references/op-rewrites.md). The core pattern is
+**compute once on the host for a fixed shape, pass a constant tensor into the
+graph**. Verify the rewritten module is bit-exact against the original on CPU
+(`max_abs == 0`) before compiling it.
 
-**B. torch.compile로 decoder + KV를 올리려 했다**
-custom op을 얹어도 안 된다. static-address KV, 공유 `CompileContext`, `Runtime` 소유
-계약은 `rebel.compile_from_torch` 경로에서만 표현된다. `/rbln-skills:rbln-port`의
-L1 레시피로 전환한다. `torch.compile(backend="rbln")`은 fixed-shape stateless
-모듈(encoder, audio tower, decode-step lm_head)에만 쓴다.
+**B. You tried to put a decoder plus KV cache through torch.compile.**
+Custom ops do not rescue this. The static-address KV, shared `CompileContext`
+and runtime-ownership contract is only expressible through
+`rebel.compile_from_torch`. Switch to the L1 recipe in
+`/rbln-skills:rbln-port`. Keep `torch.compile(backend="rbln")` for fixed-shape
+stateless modules only (encoder, audio tower, decode-step lm_head).
 
-**C. optimum-rbln config 제약**
-[references/constraints.md](references/constraints.md)의 표대로 값을 맞춘다.
-자주 걸리는 것: eager attention은 `kvcache_block_size == max_seq_len`,
-`prefill_chunk_size`는 64의 배수(32는 optimum 체크를 풀어도 컴파일러가 거부),
-flash attention은 `kvcache_partition_len` 하한 때문에 짧은 컨텍스트에서 불가.
+**C. optimum-rbln config constraint.**
+Match the values in [references/constraints.md](references/constraints.md).
+Common ones: eager attention requires `kvcache_block_size == max_seq_len`;
+`prefill_chunk_size` must be a multiple of 64 (32 is rejected by the compiler
+even if you relax the optimum check); flash attention's
+`kvcache_partition_len` lower bound rules it out for short contexts.
 
-**D. 스레드 수 변경**
-컴파일 프로세스의 `RBLN_NUM_THREADS`와 `torch.get_num_threads()`가 tracing 중 바뀌면
-실패한다. 컴파일 전에 둘을 같은 값으로 고정하고, 컴파일 중 `torch.set_num_threads`를
-호출하는 코드(벤치마크 하네스 포함)를 제거한다.
+**D. Thread count changed.**
+Compilation fails if `RBLN_NUM_THREADS` and `torch.get_num_threads()` diverge
+while tracing. Pin both to the same value before compiling and remove any
+`torch.set_num_threads` call that runs during compilation (benchmark harnesses
+are a frequent source).
 
-**E. 지원되지 않는 op**
-1. `import optimum.rbln.ops` 후 `torch.ops.rbln_custom_ops`에 대체 op이 있는지 본다
-   (`paged_causal_attn_decode/prefill`, `rbln_cache_update`, flash/moe/linear 변형).
-2. 설치된 optimum-rbln의 가장 가까운 `<model>_architecture.py`와 `decoderonly/`에서
-   같은 문제를 어떻게 풀었는지 찾는다.
-3. 없으면 static buffer + tensor masking + gather/scatter 조합으로 같은 의미를 만든다.
+**E. Genuinely unsupported op.**
+1. After `import optimum.rbln.ops`, look for a replacement in
+   `torch.ops.rbln_custom_ops` (`paged_causal_attn_decode/prefill`,
+   `rbln_cache_update`, flash / moe / linear variants).
+2. Read the nearest `<model>_architecture.py` and `decoderonly/` in the
+   installed optimum-rbln to see how the same problem was solved there.
+3. Otherwise express the same semantics with static buffers, tensor masking and
+   gather/scatter.
 
-### 4. 컴파일 성공 뒤에 확인할 것
+### 4. Verify after a successful compile
 
-컴파일 성공은 끝이 아니다.
+Compiling is not the finish line.
 
-- 실제 device 배치: `rbln-smi`에 프로세스 PID가 해당 device 행에 보이는지
-  (`/rbln-skills:rbln-env-doctor`의 probe).
-- 반복 호출: decoder는 최소 N step 반복해 KV가 유지되는지, runtime을 함수 안에서
-  매번 만들지 않는지.
-- 정확성: `/rbln-skills:rbln-precision-check`로 CPU fp32 대비 parity.
+- Real device placement: does `rbln-smi` show this PID on the expected device
+  row? (probe in `/rbln-skills:rbln-env-doctor`)
+- Repeated calls: run the decoder for at least N steps and confirm the KV cache
+  survives; make sure the runtime is not rebuilt inside the call.
+- Correctness: gate against the CPU fp32 reference with
+  `/rbln-skills:rbln-precision-check`.
 
-## 완료 조건
+## Done when
 
-다음이 모두 참이면 끝난다.
+All of the following hold:
 
-1. 대상 모듈이 고정 shape로 컴파일되어 `.rbln` 아티팩트가 생겼다.
-2. 재작성한 모듈이 CPU에서 원본과 수치 동일(또는 문서화된 허용 오차)이다.
-3. 실행 시 device 배치가 증명됐고, stateful 모듈은 반복 호출에서 출력이 유지된다.
-4. 우회하지 못한 op이 있다면 최소 재현 + 시도한 대안 + 다음 실험이 기록됐다.
+1. The target module compiles at fixed shapes and produced its `.rbln` artifacts.
+2. The rewritten module matches the original numerically on CPU (or within a
+   documented tolerance).
+3. Device placement is proven, and stateful modules keep their output across
+   repeated calls.
+4. For anything still unresolved, a minimized reproducer, the alternatives you
+   tried, and the next smallest experiment are written down.
 
-## 검증 환경
+## Verified against
 
-ATOM-Max(RBLN-CA25), rebel-compiler 0.10.5.dev143, optimum-rbln 0.10.4
-(배치-1 경로); rebel-compiler / optimum-rbln 0.11.0.post1 (서빙 경로 제약 C 일부).
-버전별 세부는 [references/constraints.md](references/constraints.md).
+ATOM-Max (RBLN-CA25), rebel-compiler 0.10.5.dev143, optimum-rbln 0.10.4
+(batch-1 path); rebel-compiler / optimum-rbln 0.11.0.post1 (some class-C
+constraints, serving path). Version detail:
+[references/constraints.md](references/constraints.md).

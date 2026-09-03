@@ -1,52 +1,53 @@
-# 컴파일 제약과 knob (버전 고정)
+# Compile constraints and knobs (version-pinned)
 
-## 디바이스 세대
+## Device generations
 
-| 세대 | 카드 | 확인 사항 |
+| Generation | Card | Note |
 |---|---|---|
-| ATOM (base) | RBLN-CA22 | 공식 base 제품. 이 표의 실측은 CA25 기준이며 CA22에서 재확인 필요 |
-| ATOM-Max | RBLN-CA25 | 카드당 논리 device 4개, 논리 device당 약 15.7 GiB. 아래 실측의 기준 |
+| ATOM (base) | RBLN-CA22 | The official base product. Measurements here are from CA25 and need re-confirmation on CA22. |
+| ATOM-Max | RBLN-CA25 | 4 logical devices per card, roughly 15.7 GiB per logical device. Basis for everything below. |
 
-## 불변 조건 (autoregressive decoder)
+## Invariants for an autoregressive decoder
 
-1. static shape: compile 전에 tensor layout과 최대 길이 결정
-2. static-address KV: `CompileContext.mark_static_address(tensor)`를 compile에
-   넘기는 **바로 그** example tensor에 적용
-3. 공유 `CompileContext`: encoder/decoder(또는 tower/text stack)가 같은 context
-4. `rebel.Runtime` 소유: persistent buffer가 호출 사이에 살아 있어야 함
+1. Static shapes: tensor layout and maximum length are fixed before compiling.
+2. Static-address KV: call `CompileContext.mark_static_address(tensor)` on the
+   **very** example tensor you pass to compile.
+3. One shared `CompileContext`: encoder and decoder (or tower and text stack)
+   must use the same context.
+4. Own the `rebel.Runtime`: persistent buffers have to outlive the call.
 
-## optimum-rbln decoder-only config (0.10.4 기준 확인)
+## optimum-rbln decoder-only config (confirmed on 0.10.4)
 
-| knob | 제약 / 관측 |
+| Knob | Constraint / observation |
 |---|---|
-| `attn_impl="eager"` | `kvcache_block_size == max_seq_len` 필수. 실제 길이와 무관하게 컴파일된 KV 길이 × 디코더 배치 행을 매 스텝 읽음 |
-| `attn_impl="flash_attn"` | `kvcache_partition_len` 4096~32768 강제 (0.11.0.post1에서 확인). 짧은 컨텍스트 불가 |
-| `prefill_chunk_size` | 64의 배수. 기본 128. `seq_len`과 같게 두면 짧은 프롬프트도 전체 길이를 계산(패딩 비용). 규칙: 프롬프트를 한 패스로 덮는 가장 작은 값 |
-| `kvcache_num_blocks` | eager + 배치 1이면 1 |
-| `use_inputs_embeds=True` | 외부(audio 등) embedding을 주입할 때. shim 패턴의 핵심 |
-| `use_attention_mask`, `use_position_ids` | 모델 semantics에 맞게. ASR shim은 mask True, position_ids False |
-| `dtype="float32"` | 가중치 저장 dtype. 컴파일러 내부 compute는 bf16 downcast pass가 적용될 수 있음 (rbln-precision-check 참조) |
-| `decoder_batch_sizes` (서빙) | 실행 배치는 상한 버킷으로 패딩. 사다리 1/2/4/8/16/32면 9행이 16행 비용 |
-| `batch_size`, `max_seq_len`, `device` | 컴파일 시 고정. `device`는 container-visible id |
+| `attn_impl="eager"` | Requires `kvcache_block_size == max_seq_len`. Reads the compiled KV length × decoder batch rows every step regardless of the true sequence length. |
+| `attn_impl="flash_attn"` | Forces `kvcache_partition_len` into 4096–32768 (seen on 0.11.0.post1). Unusable for short contexts. |
+| `prefill_chunk_size` | Multiple of 64; default 128. Setting it equal to `seq_len` makes a short prompt pay for the full padded length. Rule: the smallest chunk that covers the prompt in one pass. |
+| `kvcache_num_blocks` | 1 for eager with batch 1. |
+| `use_inputs_embeds=True` | Needed to inject externally built embeddings (audio, vision). Core of the shim pattern. |
+| `use_attention_mask`, `use_position_ids` | Follow the model's semantics. The ASR shim used mask True, position_ids False. |
+| `dtype="float32"` | Weight storage dtype. Compiler-internal compute may still be downcast to bf16 (see rbln-precision-check). |
+| `decoder_batch_sizes` (serving) | The running batch is padded up to the next compiled bucket. With a 1/2/4/8/16/32 ladder, 9 rows cost a 16-row step. |
+| `batch_size`, `max_seq_len`, `device` | Fixed at compile time. `device` is a container-visible id. |
 
-## 컴파일 surface 선택
+## Choosing a compile surface
 
-| surface | 쓰는 곳 | 안 되는 것 |
+| Surface | Use for | Cannot express |
 |---|---|---|
-| `RBLN<Model>.from_pretrained(export=True)` | optimum이 전체 지원하는 모델 | — |
-| `RBLN<Model>.from_model(shim, rbln_config=...)` | 서브스택이 기존 클래스와 맞을 때 | 원본 모듈과 semantics가 다르면 shim으로도 불가 |
-| `torch.compile(backend="rbln", dynamic=False, options={"mode":"strict"})` | fixed-shape stateless 모듈 | autoregressive KV, 동적 host 연산 |
-| `rebel.compile_from_torch(module, input_info, example_inputs, compile_context)` | 그 외 전부. optimum 내부도 이것을 사용 | — |
+| `RBLN<Model>.from_pretrained(export=True)` | models optimum supports end to end | — |
+| `RBLN<Model>.from_model(shim, rbln_config=...)` | a sub-stack that matches an existing class | a sub-stack whose semantics differ from the target class |
+| `torch.compile(backend="rbln", dynamic=False, options={"mode":"strict"})` | fixed-shape stateless modules | autoregressive KV, dynamic host work |
+| `rebel.compile_from_torch(module, input_info, example_inputs, compile_context)` | everything else; this is what optimum uses internally | — |
 
-`torch.compile`과 `compile_from_torch`는 같은 RBLN lowering을 쓴다. 차이는 Dynamo
-adapter를 거치는지와 input/context/runtime 소유권이다.
+`torch.compile` and `compile_from_torch` share the same RBLN lowering. The
+difference is the Dynamo adapter and who owns the inputs, context and runtime.
 
-## 환경변수 (관측)
+## Environment variables (observed)
 
-| 변수 | 효과 |
+| Variable | Effect |
 |---|---|
-| `RBLN_NUM_THREADS` | 런타임/컴파일 스레드. 컴파일 중 Torch 스레드 수와 같아야 함 |
-| `RBLN_PROFILER=1` | 커널 트레이스 수집 (rbln-profile 참조) |
-| `RBLN_DEVICES` | 서빙 컨테이너에서 device 선택 (container-visible id) |
-| `RBLN_DEVICE_MAP` | 설치된 SDK(0.10.5.dev143)에서 Runtime device 선택으로 **소비되지 않음**. `Runtime(device=N)` 또는 `rbln_device` 사용 |
-| `DISABLE_REBEL_DATA_TYPE_CONVERSION_PASS=1`, `TRITON_F32_DEFAULT=ieee` | `compile_from_torch` 결과에 **효과 없음** (bf16 downcast 유지, 0.10.5.dev143) |
+| `RBLN_NUM_THREADS` | Runtime / compile threads. Must equal the Torch thread count during compilation. |
+| `RBLN_PROFILER=1` | Collects kernel traces (see rbln-profile). |
+| `RBLN_DEVICES` | Device selection in a serving container (container-visible id). |
+| `RBLN_DEVICE_MAP` | **Not** consumed as a Runtime device selector by the installed SDK (0.10.5.dev143). Use `Runtime(device=N)` or `rbln_device`. |
+| `DISABLE_REBEL_DATA_TYPE_CONVERSION_PASS=1`, `TRITON_F32_DEFAULT=ieee` | **No effect** on a `compile_from_torch` result; bf16 downcast persists (0.10.5.dev143). |

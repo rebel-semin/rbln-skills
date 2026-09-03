@@ -1,12 +1,12 @@
-# 프로파일러 동작과 훅 코드
+# How the profiler behaves, and the hook code
 
-## 1층 훅: optimum RBLNRuntimeModel 두 깊이
+## Layer 1 hook: optimum RBLNRuntimeModel at two depths
 
 ```python
 import time
 
 class TimedRuntime:
-    """rebel.Runtime 프록시. device 호출 시간만 기록."""
+    """Proxy around rebel.Runtime that times only the device call."""
     def __init__(self, inner, sink):
         self._inner, self._sink = inner, sink
     def __call__(self, *a, **k):
@@ -31,65 +31,73 @@ def hook_runtime_model(runtime_model, calls, device, starts):
     runtime_model.forward = timed_forward
 ```
 
-optimum decoder-only 모델은 `model.prefill_decoder`, `model.decoders[batch]` 같은
-`RBLNRuntimeModel`을 가진다. 각각에 훅을 건다. 호출 − device = optimum step별 host 작업.
-generate 루프 gap = `starts[i+1] − (starts[i] + calls[i])`.
+An optimum decoder-only model holds `RBLNRuntimeModel` objects such as
+`model.prefill_decoder` and `model.decoders[batch]`. Hook each one. Call minus
+device is optimum's per-step host work. The generate-loop gap is
+`starts[i+1] - (starts[i] + calls[i])`.
 
-## 2층: 프로파일러 활성화
+## Layer 2: turning the profiler on
 
 ```python
 import os
-os.environ["RBLN_PROFILER"] = "1"           # 런타임 생성 전에
+os.environ["RBLN_PROFILER"] = "1"           # before creating any runtime
 from optimum.rbln import RBLNQwen3ForCausalLM
 model = RBLNQwen3ForCausalLM.from_pretrained(cache_dir, export=False,
                                              rbln_device=0, rbln_activate_profiler=True)
-# 손 작성 경로: rebel.Runtime(...) 는 RBLN_PROFILER 환경변수를 읽음
+# hand-written path: rebel.Runtime(...) reads the RBLN_PROFILER env var
 
 from rebel.profiler import profile
-run_once()                                   # unprofiled warmup (lazy setup 제외)
+run_once()                                   # unprofiled warmup, keeps lazy setup out
 with profile(output_dir="traces"):
-    run_once()                               # 짧게 (예: 16 token)
+    run_once()                               # keep it short (e.g. 16 tokens)
 ```
 
-출력 `traces/rbln_<YYYYMMDD>_<HHMMSS...>_<seq>.pb`. seq는 런타임 호출 순서. 예: audio
-runtime 초기 호출 0, warmup audio/prefill/decode 1/2/3~17, profiled run 18/19/20~34.
-현재 디렉터리에 `rbln_*.pb`가 떨어지는 경우도 있으니 실행 전후 파일 목록 차이로 새
-파일을 잡는다.
+Output lands as `traces/rbln_<YYYYMMDD>_<HHMMSS...>_<seq>.pb`, where `seq` is
+runtime call order. Example mapping: the audio runtime's first call is 0, warmup
+audio/prefill/decode are 1/2/3–17, and the profiled run is 18/19/20–34. Files
+sometimes land in the current directory as `rbln_*.pb`, so diff the file listing
+before and after the run to pick up new files.
 
-프로파일된 런의 step 시간은 약 2배(15.8 → 31.8 ms, 대부분 트레이스 파일 쓰기). 시간
-수치로 인용하지 않고 `profiled: true`로 표시한다.
+Step times in a profiled run roughly double (15.8 → 31.8 ms, mostly writing trace
+files). Never quote them; mark the run `profiled: true`.
 
-## 트레이스 읽기
+## Reading a trace
 
-`perfetto` 패키지의 `TraceProcessor`. 스레드 트랙 이름: `Host`, `Neural Engine
-Clusters`, `Neural DMA`, `Task DMA`, `External HDMA`, `Device HDMA`, `Device Sync`.
-slice args(`debug.Slice Arguments`)에 `transfer: [":<N>Byte"]`, `comp_cycle: [...]`.
-op 이름 형식 `<idx>_<family>_<opid>_<n>` (예: `12_linear_196_0`).
+Use `TraceProcessor` from the `perfetto` package. Thread track names: `Host`,
+`Neural Engine Clusters`, `Neural DMA`, `Task DMA`, `External HDMA`,
+`Device HDMA`, `Device Sync`. Slice args (`debug.Slice Arguments`) carry
+`transfer: [":<N>Byte"]` and `comp_cycle: [...]`. Op names look like
+`<idx>_<family>_<opid>_<n>`, e.g. `12_linear_196_0`.
 
-`scripts/trace_summary.py`가 phase별로 집계한다:
-- 트랙별 busy_us, span 대비 %, union
+`scripts/trace_summary.py` aggregates per phase:
+- busy_us per track, share of span, union
 - NE-only / DMA-only / NE|DMA overlap
-- Task DMA 이동 바이트, NE comp_cycle 합
-- 트랙별 상위 op family, Neural DMA 상위 linear op id (가중치 스트리밍 큰 층 식별)
+- Task DMA bytes moved, summed NE comp_cycles
+- top op families per track, and the top linear op ids on Neural DMA (which
+  identifies the layers streaming the most weight)
 
-## 서빙 엔진(vllm-rbln)에서 트레이스 회수
+## Recovering traces from a serving engine (vllm-rbln)
 
-문제: `RBLN_PROFILER=1`이면 수집은 되지만 `.pb`는 `rebel._C.profiler.done()`에서
-쓰인다. vLLM 서버는 이를 부르지 않고, mp executor worker는 `timeout=0`으로 종료되어
-atexit/`worker.shutdown()` 훅으로 회수되지 않았다 (3회 실패).
+The problem: `RBLN_PROFILER=1` collects data, but `.pb` files are written only by
+`rebel._C.profiler.done()`. A vLLM server never calls it, and its worker
+processes are torn down (mp executor, shutdown timeout 0) in a way that made
+atexit and `worker.shutdown()` hooks unreliable — three attempts failed.
 
-동작한 방법: `scripts/profiler_flush_hook.py`를 `sitecustomize.py`라는 이름으로
-PYTHONPATH 앞에 두면 `RBLN_PROFILER=1`인 모든 Python 프로세스에 daemon thread가 생겨
-트리거 파일(`RBLN_PROFILER_TRIGGER`, 기본 `/traces/FLUSH`)을 폴링한다. 트리거가
-생기면 `rebel`을 import한 프로세스가 `profiler.start(cwd) + profiler.done()`을 실행해
-멀티스트림 `.pb` 1개를 쓴다.
+What worked: place `scripts/profiler_flush_hook.py` on `PYTHONPATH` under the
+name `sitecustomize.py`. Every Python process with `RBLN_PROFILER=1` then starts a
+daemon thread polling for a trigger file (`RBLN_PROFILER_TRIGGER`, default
+`/traces/FLUSH`). When the trigger appears, each process that imported `rebel`
+calls `profiler.start(cwd)` followed by `profiler.done()`, writing one
+multi-stream `.pb`.
 
 ```bash
 mkdir -p /path/hooks && cp profiler_flush_hook.py /path/hooks/sitecustomize.py
-# 엔진 컨테이너에 -e RBLN_PROFILER=1 -e PYTHONPATH=/hooks:$PYTHONPATH -v /path/hooks:/hooks:ro -v /path/traces:/traces
-# 부하를 건 뒤:
-touch /path/traces/FLUSH   # 각 프로세스가 FLUSH.<pid>.done 을 남김
+# engine container: -e RBLN_PROFILER=1 -e PYTHONPATH=/hooks:$PYTHONPATH \
+#                   -v /path/hooks:/hooks:ro -v /path/traces:/traces
+# after applying load:
+touch /path/traces/FLUSH   # each process leaves FLUSH.<pid>.done
 ```
 
-서빙 트레이스의 "모듈" 번호는 그래프별(예: prefill, decoder 버킷, audio tower 버킷,
-sampler 소형 그래프)이며 span 길이와 호출 수로 정체를 맞춘다.
+The "module" numbers in a serving trace are per graph (prefill, decoder buckets,
+audio-tower buckets, small sampler graphs); identify them by span length and call
+count.
