@@ -1,0 +1,60 @@
+# Rebellions matplotlib style (rbln-design skill).
+# Usage:  import matplotlib.pyplot as plt; plt.style.use("/path/to/rbln.mplstyle")
+# Palette and type roles: Rebellions 2026 Deck Guide. Sizes are for a 10x5.6 in figure at 200 dpi.
+# Series order: Neon Green for the ONE highlighted series, then neutrals. Secondary accents come last
+# and mean the chart has too many series — split it before reaching them.
+
+font.family:          sans-serif
+font.sans-serif:      Pretendard, Pretendard Variable, Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, DejaVu Sans
+font.size:            11
+text.color:           1B1F23
+axes.unicode_minus:   False
+
+axes.prop_cycle:      cycler('color', ['52F756', '24292F', 'BBC4CF', 'D9E4ED', '174BEB', '9A4EFF', 'F7318B', 'FF3333', 'FFD527'])
+
+figure.facecolor:     FFFFFF
+figure.figsize:       10, 5.625
+figure.dpi:           100
+savefig.dpi:          200
+savefig.facecolor:    FFFFFF
+savefig.bbox:         tight
+
+axes.facecolor:       FFFFFF
+axes.edgecolor:       BBC4CF
+axes.linewidth:       0.8
+axes.spines.top:      False
+axes.spines.right:    False
+axes.spines.left:     False
+axes.grid:            True
+axes.grid.axis:       y
+axes.axisbelow:       True
+grid.color:           D9E4ED
+grid.linewidth:       0.8
+grid.linestyle:       -
+
+axes.titlesize:       16
+axes.titleweight:     semibold
+axes.titlelocation:   left
+axes.titlepad:        14
+axes.titlecolor:      1B1F23
+axes.labelsize:       11
+axes.labelcolor:      24292F
+
+xtick.major.size:     0
+xtick.minor.size:     0
+xtick.color:          24292F
+xtick.labelsize:      11
+ytick.major.size:     3.5
+ytick.minor.size:     0
+ytick.color:          24292F
+ytick.labelsize:      11
+
+legend.loc:           upper center
+legend.frameon:       False
+legend.fontsize:      11
+legend.handlelength:  1.2
+
+lines.linewidth:      2.25
+lines.markersize:     6
+patch.force_edgecolor: False
+patch.linewidth:      0

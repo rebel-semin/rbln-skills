@@ -1,0 +1,54 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "Rebellions design tokens (rbln-design skill). Palette and type roles from the Rebellions 2026 Deck Guide; semantic and web mappings are the skill's extension.",
+  "color": {
+    "green":    { "$value": "#52F756", "$type": "color", "$description": "Point / highlight. Exactly one per view. Text on it is always #1B1F23." },
+    "black":    { "$value": "#1B1F23", "$type": "color", "$description": "Near-black: text, dark background." },
+    "gray-900": { "$value": "#24292F", "$type": "color", "$description": "Dark gray: series 2, panels, table header." },
+    "gray-400": { "$value": "#BBC4CF", "$type": "color", "$description": "Mid gray: series 3. 1.8:1 on white - not text on light surfaces." },
+    "gray-200": { "$value": "#D9E4ED", "$type": "color", "$description": "Light blue-gray: series 4, gridlines, borders." },
+    "gray-050": { "$value": "#F6F8FA", "$type": "color", "$description": "Off-white: light surface, zebra rows." },
+    "white":    { "$value": "#FFFFFF", "$type": "color" },
+    "blue":     { "$value": "#174BEB", "$type": "color", "$description": "Secondary accent (6.5:1 on white - the only secondary usable as body text on light)." },
+    "purple":   { "$value": "#9A4EFF", "$type": "color", "$description": "Secondary accent, large text or fills only." },
+    "pink":     { "$value": "#F7318B", "$type": "color", "$description": "Secondary accent, large text or fills only." },
+    "red":      { "$value": "#FF3333", "$type": "color", "$description": "Secondary accent, large text or fills only." },
+    "yellow":   { "$value": "#FFD527", "$type": "color", "$description": "Secondary accent, fills only (1.4:1 on white)." }
+  },
+  "series": {
+    "light": { "$value": ["{color.green}", "{color.gray-900}", "{color.gray-400}", "{color.gray-200}"], "$description": "Order for charts on white / off-white." },
+    "dark":  { "$value": ["{color.green}", "{color.gray-200}", "{color.gray-400}", "{color.gray-900}"], "$description": "Order for charts on #1B1F23. Prefer three series or fewer." },
+    "secondary": { "$value": ["{color.blue}", "{color.purple}", "{color.pink}", "{color.red}", "{color.yellow}"], "$description": "Only when a categorical accent beyond the neutrals is unavoidable. Schematics: 6:2:2 green:secondary:secondary." }
+  },
+  "surface": {
+    "light": { "bg": "{color.white}", "panel": "{color.gray-050}", "fg": "{color.black}", "fg-muted": "{color.gray-900}", "grid": "{color.gray-200}", "border": "{color.gray-200}" },
+    "dark":  { "bg": "{color.black}", "panel": "{color.gray-900}", "fg": "{color.gray-050}", "fg-muted": "{color.gray-400}", "grid": "{color.gray-900}", "border": "{color.gray-900}" }
+  },
+  "font": {
+    "family": { "$value": "Pretendard", "$type": "fontFamily", "$description": "One family for Korean and English. Fallbacks: Pretendard Variable, Apple SD Gothic Neo, Noto Sans KR, system sans." },
+    "weight": {
+      "headline": { "$value": 600, "$description": "Pretendard SemiBold" },
+      "support":  { "$value": 500, "$description": "Pretendard Medium" },
+      "body":     { "$value": 400, "$description": "Pretendard Regular" },
+      "footnote": { "$value": 200, "$description": "Pretendard ExtraLight" }
+    },
+    "size-pt-deck": { "headline": [44, 32], "support": [28, 24], "body": [20, 14], "chart-text-min": 14, "footnote": 8 },
+    "size-px-web":  { "display": 44, "h1": 32, "h2": 28, "h3": 24, "lead": 20, "body": 14, "chart-text-min": 14, "caption": 12 },
+    "line-height":  { "headline": 1.0, "support": 1.1, "body-deck": 1.1, "body-web": 1.5 }
+  },
+  "chart": {
+    "line-stroke-pt": 2.25,
+    "grid-stroke-pt": 0.75,
+    "bar-gap-percent-of-bar": [60, 80],
+    "plotly-bargap": 0.4,
+    "matplotlib-bar-width": 0.6,
+    "legend": "top or absent",
+    "gridlines": "horizontal only"
+  },
+  "layout": {
+    "deck-canvas-pt": [960, 540],
+    "deck-safe-margin-pt": 36,
+    "web-gutter": "clamp(16px, 3.75vw, 36px)",
+    "schematic-ratio": "6:2:2 (green : secondary : secondary)"
+  }
+}

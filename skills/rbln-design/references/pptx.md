@@ -1,33 +1,17 @@
----
-name: rbln-dataviz
-description: >-
-  Build charts, graphs, KPI callouts and data tables that comply with the
-  Rebellions 2026 Deck Guide. Use when adding or restyling a data visualization
-  in a Rebellions-branded deck — bar, column, line, area, pie, doughnut or
-  scatter charts, comparison and spec tables, benchmark result tables, KPI
-  callouts — or when an existing chart uses off-palette colors and needs the
-  Neon Green (#52F756) point color and Pretendard typography applied.
----
+# PowerPoint implementation (Rebellions 2026 Deck Guide)
 
-# Rebellions deck data visualization
+Medium-specific mechanics for `.pptx` decks. The brand rules themselves —
+palette, typography, one-highlight rule, table types — are in `SKILL.md`; this
+file says how to realize them with real OOXML charts and tables. Everything here
+is transcribed from the Deck Guide slides (Overview / Typography Guidelines /
+Color Guidelines / Graph Guidelines_W / Chart Guidelines_W).
 
-All rules below are transcribed from the Rebellions 2026 Deck Guide slides
-(Overview / Typography Guidelines / Color Guidelines / Graph Guidelines_W /
-Chart Guidelines_W).
+## When this file applies
 
-## When to use
-
-Use this skill whenever you add or restyle a data visualization in a
-Rebellions-branded deck:
-
-- bar / column / line / area / pie / doughnut / scatter charts
-- comparison or spec tables (competitive positioning, product specs, benchmark
-  results)
-- KPI or single-metric callouts
-- restyling an existing chart that does not follow the brand palette
-
-Do **not** use it for pure text slides, covers, or agenda slides — those are
-covered by the master layouts directly.
+You are editing a Rebellions-branded deck with a PowerPoint tool surface — adding
+or restyling a chart, a comparison or spec table, a benchmark table or a KPI
+callout. Pure text slides, covers and agenda slides are covered by the master
+layouts directly.
 
 ## Prerequisites
 

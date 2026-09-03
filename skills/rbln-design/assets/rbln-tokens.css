@@ -1,0 +1,147 @@
+/* Rebellions design tokens (rbln-design skill).
+ *
+ * Palette and type roles come from the Rebellions 2026 Deck Guide. The web
+ * mapping (rem scale, dark surface, semantic names) is this skill's extension.
+ *
+ * Usage:
+ *   <link rel="stylesheet" href="rbln-tokens.css">     or paste the file inline
+ *   body { font-family: var(--rbln-font); color: var(--rbln-fg); background: var(--rbln-bg); }
+ *
+ * Load Pretendard before this file (see references/web.md). The font stack falls
+ * back to system Korean-capable faces when Pretendard is unavailable.
+ */
+
+:root {
+  /* ---- raw palette (the only colors allowed) ---- */
+  --rbln-green:     #52F756;   /* point / highlight — exactly one per view */
+  --rbln-black:     #1B1F23;   /* near-black: text, dark background */
+  --rbln-gray-900:  #24292F;   /* dark gray: series 2, panels, table header */
+  --rbln-gray-400:  #BBC4CF;   /* mid gray: series 3, muted text on dark */
+  --rbln-gray-200:  #D9E4ED;   /* light blue-gray: series 4, gridlines, borders */
+  --rbln-gray-050:  #F6F8FA;   /* off-white: light surface, zebra rows */
+  --rbln-white:     #FFFFFF;
+  --rbln-blue:      #174BEB;   /* secondary accents — only when a 2nd/3rd category color is unavoidable */
+  --rbln-purple:    #9A4EFF;
+  --rbln-pink:      #F7318B;
+  --rbln-red:       #FF3333;
+  --rbln-yellow:    #FFD527;
+
+  /* ---- semantic, light surface ---- */
+  --rbln-bg:             var(--rbln-white);
+  --rbln-surface:        var(--rbln-gray-050);
+  --rbln-fg:             var(--rbln-black);
+  --rbln-fg-muted:       var(--rbln-gray-900);  /* #BBC4CF is 1.8:1 on white — never body text on light */
+  --rbln-border:         var(--rbln-gray-200);
+  --rbln-grid:           var(--rbln-gray-200);
+  --rbln-highlight:      var(--rbln-green);
+  --rbln-on-highlight:   var(--rbln-black);     /* text on Neon Green is always near-black */
+  --rbln-series-1:       var(--rbln-green);
+  --rbln-series-2:       var(--rbln-gray-900);
+  --rbln-series-3:       var(--rbln-gray-400);
+  --rbln-series-4:       var(--rbln-gray-200);
+  --rbln-table-head-bg:  var(--rbln-gray-900);
+  --rbln-table-head-fg:  var(--rbln-white);
+  --rbln-table-zebra:    var(--rbln-gray-050);
+  --rbln-table-rule:     var(--rbln-gray-200);
+
+  /* ---- typography ---- */
+  --rbln-font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+               "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+  --rbln-weight-headline:  600;   /* Pretendard SemiBold */
+  --rbln-weight-support:   500;   /* Pretendard Medium   */
+  --rbln-weight-body:      400;   /* Pretendard Regular  */
+  --rbln-weight-footnote:  200;   /* Pretendard ExtraLight */
+
+  /* deck pt → web px: 44/32/28/24/20/14 map 1:1; the 8 pt footnote becomes 12 px (screen minimum) */
+  --rbln-size-display:  2.75rem;  /* 44 */
+  --rbln-size-h1:       2rem;     /* 32 */
+  --rbln-size-h2:       1.75rem;  /* 28 */
+  --rbln-size-h3:       1.5rem;   /* 24 */
+  --rbln-size-lead:     1.25rem;  /* 20 */
+  --rbln-size-body:     0.875rem; /* 14 — also the minimum for chart/table text */
+  --rbln-size-caption:  0.75rem;  /* 12 — footnotes, sources, units */
+
+  --rbln-leading-headline: 1.0;   /* deck 0.9; 1.0 keeps descenders inside the box on screen */
+  --rbln-leading-support:  1.1;
+  --rbln-leading-body:     1.5;   /* deck 1.1 is for short slide text; paragraphs need 1.5 */
+
+  /* ---- layout ---- */
+  --rbln-gutter: clamp(16px, 3.75vw, 36px);   /* deck safe margin: 36 pt of 960 */
+  --rbln-radius: 4px;                          /* UI only; charts and tables stay square */
+  --rbln-rule:   1px;                          /* hairline for gridlines and table rules */
+  --rbln-stroke: 2.25px;                       /* line-chart stroke */
+
+  color-scheme: light dark;
+}
+
+/* ---- dark surface: system preference, unless the page pins light ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rbln-bg:            var(--rbln-black);
+    --rbln-surface:       var(--rbln-gray-900);
+    --rbln-fg:            var(--rbln-gray-050);
+    --rbln-fg-muted:      var(--rbln-gray-400);
+    --rbln-border:        var(--rbln-gray-900);
+    --rbln-grid:          var(--rbln-gray-900);
+    --rbln-series-2:      var(--rbln-gray-200);   /* #24292F vanishes on #1B1F23 */
+    --rbln-series-3:      var(--rbln-gray-400);
+    --rbln-series-4:      var(--rbln-gray-900);   /* barely visible — keep dark charts to 3 series */
+    --rbln-table-head-bg: var(--rbln-gray-900);
+    --rbln-table-head-fg: var(--rbln-gray-050);
+    --rbln-table-zebra:   var(--rbln-gray-900);
+    --rbln-table-rule:    var(--rbln-gray-900);
+  }
+}
+/* ---- dark surface: explicit toggle wins ---- */
+:root[data-theme="dark"] {
+  --rbln-bg:            var(--rbln-black);
+  --rbln-surface:       var(--rbln-gray-900);
+  --rbln-fg:            var(--rbln-gray-050);
+  --rbln-fg-muted:      var(--rbln-gray-400);
+  --rbln-border:        var(--rbln-gray-900);
+  --rbln-grid:          var(--rbln-gray-900);
+  --rbln-series-2:      var(--rbln-gray-200);
+  --rbln-series-3:      var(--rbln-gray-400);
+  --rbln-series-4:      var(--rbln-gray-900);
+  --rbln-table-head-bg: var(--rbln-gray-900);
+  --rbln-table-head-fg: var(--rbln-gray-050);
+  --rbln-table-zebra:   var(--rbln-gray-900);
+  --rbln-table-rule:    var(--rbln-gray-900);
+}
+
+/* ================= optional components ================= */
+
+/* Type roles */
+.rbln-headline { font: var(--rbln-weight-headline) var(--rbln-size-h1)/var(--rbln-leading-headline) var(--rbln-font); letter-spacing: -0.01em; }
+.rbln-display  { font: var(--rbln-weight-headline) var(--rbln-size-display)/var(--rbln-leading-headline) var(--rbln-font); letter-spacing: -0.02em; }
+.rbln-support  { font: var(--rbln-weight-support) var(--rbln-size-h3)/var(--rbln-leading-support) var(--rbln-font); }
+.rbln-body     { font: var(--rbln-weight-body) var(--rbln-size-body)/var(--rbln-leading-body) var(--rbln-font); }
+.rbln-footnote { font: var(--rbln-weight-footnote) var(--rbln-size-caption)/1.4 var(--rbln-font); color: var(--rbln-fg-muted); }
+.rbln-num      { font-variant-numeric: tabular-nums; }
+
+/* KPI tile: number in near-black, Neon Green as a mark (rule), never as text on light */
+.rbln-kpi { display: grid; gap: 0.25rem; padding: 1rem 1.25rem; background: var(--rbln-surface); border-radius: var(--rbln-radius); }
+.rbln-kpi__label { font: var(--rbln-weight-body) var(--rbln-size-body)/1.3 var(--rbln-font); color: var(--rbln-fg-muted); }
+.rbln-kpi__value { font: var(--rbln-weight-headline) var(--rbln-size-display)/1 var(--rbln-font); color: var(--rbln-fg); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.rbln-kpi--highlight { box-shadow: inset 0 4px 0 var(--rbln-highlight); }   /* exactly one tile carries this */
+.rbln-kpi--highlight .rbln-kpi__value { color: var(--rbln-fg); }
+:root[data-theme="dark"] .rbln-kpi--highlight .rbln-kpi__value { color: var(--rbln-highlight); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rbln-kpi--highlight .rbln-kpi__value { color: var(--rbln-highlight); } }
+
+/* Tables: Standard type by default; add ONE of the highlight modifiers */
+.rbln-table { width: 100%; border-collapse: collapse; font: var(--rbln-weight-body) var(--rbln-size-body)/1.3 var(--rbln-font); color: var(--rbln-fg); }
+.rbln-table th { background: var(--rbln-table-head-bg); color: var(--rbln-table-head-fg); font-weight: 700; text-align: center; padding: 0.5rem 0.75rem; }
+.rbln-table td { padding: 0.5rem 0.75rem; border-bottom: var(--rbln-rule) solid var(--rbln-table-rule); vertical-align: middle; }
+.rbln-table tbody tr:nth-child(even) td { background: var(--rbln-table-zebra); }
+.rbln-table td.rbln-label { text-align: left; }
+.rbln-table td.rbln-value { text-align: right; font-variant-numeric: tabular-nums; }
+/* Highlight Type 1 — one column (mark the <th> and its <td>s with .rbln-hl). Selectors carry both
+   table classes so they outrank the zebra rule on even rows. */
+.rbln-table.rbln-table--col th.rbln-hl { background: var(--rbln-highlight); color: var(--rbln-on-highlight); }
+.rbln-table.rbln-table--col tbody td.rbln-hl { background: var(--rbln-gray-050); color: var(--rbln-black); font-weight: 700; }
+/* Highlight Type 2 — one row (mark the <tr> with .rbln-hl) or single winning cells (td.rbln-win) */
+.rbln-table.rbln-table--row tbody tr.rbln-hl td { background: var(--rbln-highlight); color: var(--rbln-on-highlight); font-weight: 700; }
+.rbln-table.rbln-table--row tbody td.rbln-win { background: var(--rbln-black); color: var(--rbln-highlight); font-weight: 700; }
+
+/* Wide content scrolls inside its own box; the page never scrolls sideways */
+.rbln-scroll-x { overflow-x: auto; max-width: 100%; }
