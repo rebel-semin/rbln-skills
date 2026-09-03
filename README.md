@@ -30,6 +30,7 @@ ln -s "$PWD/rbln-skills/skills/rbln-skill-template" ~/.claude/skills/rbln-skill-
 
 | 스킬 | 설명 | 호출 |
 |---|---|---|
+| `rbln-dataviz` | Rebellions 2026 Deck Guide 를 지키는 차트·표·KPI 콜아웃 작성 | `/rbln-skills:rbln-dataviz` |
 | `rbln-skill-template` | 이 저장소에 새 스킬을 추가할 때 쓰는 템플릿 겸 체크리스트 | `/rbln-skills:rbln-skill-template` |
 
 새 스킬을 추가하면 이 표에 한 줄 추가합니다.
