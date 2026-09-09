@@ -37,6 +37,7 @@ ln -s "$PWD/rbln-skills/skills/rbln-skill-template" ~/.claude/skills/rbln-skill-
 | `rbln-compile-debug` | `RBLNCompileError`, `DEVICE_GRAPH_CONVERSION`, segfault, config 제약 등 컴파일 실패 분류와 hostile op 재작성 매핑 | `/rbln-skills:rbln-compile-debug` |
 | `rbln-precision-check` | ATOM vs CPU fp32 정확성 게이트, bf16 downcast 누적 localize, task별 metric 선택 | `/rbln-skills:rbln-precision-check` |
 | `rbln-profile` | stage wall time + `RBLN_PROFILER` 커널 트레이스로 compute-bound / DMA-bound 판정, 서빙 엔진 트레이스 회수 | `/rbln-skills:rbln-profile` |
+| `rbln-minimal-reproduce` | 작업 폴더에서 발견한 이슈·측정치를 다른 서버나 SDK 팀에 넘길 최소 standalone 재현 스크립트로 정리: 고정 헤더의 단일 `main.py`, argparse, 원본 API 계층 유지, 셋업 파일 없이 deps 불릿, 유휴 디바이스에서 fresh venv 검증 | `/rbln-skills:rbln-minimal-reproduce` |
 
 새 스킬을 추가하면 이 표에 한 줄 추가합니다.
 
