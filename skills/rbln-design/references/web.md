@@ -53,8 +53,9 @@ Chart and table text never goes below 14 px; captions never below 12 px. Pretend
 ExtraLight (200) at 12 px is legible on desktop but thin on low-DPI screens — use
 400 for captions that must be read, 200 for decorative source lines.
 
-Title the visual with the insight, in H3 weight 500: "TCO drops 42% at equal
-throughput", not "TCO comparison".
+Title the visual with the insight as an English noun phrase, in H3 weight 500:
+"42% lower TCO at equal throughput", not "TCO drops 42% at equal throughput."
+or "TCO comparison". Annotation limits are in SKILL.md § Copy.
 
 ## 3. Dark mode
 

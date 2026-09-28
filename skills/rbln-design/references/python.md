@@ -36,7 +36,7 @@ fig, ax = plt.subplots()
 bars = ax.bar(cats, vals, width=0.6, color="#24292F")   # width 0.6 ≈ deck gap width 67 %
 bars[hl].set_color("#52F756")                           # the one highlight
 ax.bar_label(bars, fmt="%d", padding=3)                 # data labels
-ax.set_title("REBEL delivers 88 tok/s — 44% over H100") # the insight, not the chart type
+ax.set_title("88 tok/s on REBEL, 44% over H100")        # insight as a noun phrase
 fig.savefig("out.png")
 ```
 
@@ -96,7 +96,7 @@ pio.templates.default = "rbln"                          # "rbln_dark" for dark s
 
 fig = go.Figure(go.Bar(x=cats, y=vals, text=vals,
                        marker_color=rbln_plotly.highlight(vals, hl)))
-fig.update_layout(title="REBEL delivers 88 tok/s")
+fig.update_layout(title="88 tok/s on REBEL")
 fig.write_html("out.html", include_plotlyjs="cdn")      # or fig.write_image("out.png", scale=2)
 ```
 

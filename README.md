@@ -30,7 +30,7 @@ ln -s "$PWD/rbln-skills/skills/rbln-skill-template" ~/.claude/skills/rbln-skill-
 
 | 스킬 | 설명 | 호출 |
 |---|---|---|
-| `rbln-design` | Rebellions 브랜드 디자인 시스템(Neon Green 포인트 컬러·중립 팔레트·Pretendard)을 웹/아티팩트, Python 그래프, SVG·Mermaid 다이어그램, 문서, PPT 등 어떤 매체에든 적용. 토큰(CSS·mplstyle·plotly 템플릿)과 팔레트 검사 스크립트 포함 | `/rbln-skills:rbln-design` |
+| `rbln-design` | Rebellions 브랜드 디자인 시스템(Neon Green 포인트 컬러·중립 팔레트·Pretendard)을 웹/아티팩트, Python 그래프, SVG·Mermaid 다이어그램, 문서, PPT 등 어떤 매체에든 적용. 영어 문구·명사구 제목·최소 주석 규칙 포함. 토큰(CSS·mplstyle·plotly 템플릿)과 팔레트 검사 스크립트 포함 | `/rbln-skills:rbln-design` |
 | `rbln-skill-template` | 이 저장소에 새 스킬을 추가할 때 쓰는 템플릿 겸 체크리스트 | `/rbln-skills:rbln-skill-template` |
 | `rbln-env-doctor` | ATOM/RBLN 컨테이너 점검: device 가시성, `/opt/python`·버전 확인, `rbln-smi` PID로 배치 증명, 스레드·env·`--no-deps` 규칙 | `/rbln-skills:rbln-env-doctor` |
 | `rbln-port` | 모델을 ATOM에 올리는 절차: optimum 클래스 → shim → `compile_from_torch` L1, CPU stage breakdown으로 offload 순서 결정, 정확성 사다리 | `/rbln-skills:rbln-port` |

@@ -186,11 +186,14 @@ than one column or row carries Neon Green.
   read them for spec, do not overwrite them.
 - Never hardcode the content top edge. Call `list_slide_shapes` first, then
   start content at `title.top + title.height + ≥10 pt`.
-- One visual per slide plus a one-line takeaway in supporting-headline style. If
+- One visual per slide plus a one-line takeaway in supporting-headline style,
+  written as a noun phrase. If
   two visuals are required, give each half the width and keep the palette
   identical.
-- Write the insight, not the chart type, in the title: "TCO drops 42% at equal
-  throughput", not "TCO comparison".
+- Write the insight as an English noun phrase, not a sentence or the chart
+  type: "42% lower TCO at equal throughput", not "TCO drops 42% at equal
+  throughput." or "TCO comparison". No callout boxes or explanatory arrows;
+  explanation goes in the speaker notes (SKILL.md § Copy).
 
 ## Workflow
 
@@ -224,3 +227,4 @@ than one column or row carries Neon Green.
 - [ ] Data labels visible on the key series.
 - [ ] Real chart / real table — never shapes imitating data.
 - [ ] Content inside the 36 pt safe area, below the measured title band.
+- [ ] All text English; title and takeaway are noun phrases; no callouts beyond one on the green element.

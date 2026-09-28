@@ -8,8 +8,9 @@ description: >-
   Excel tables, and PowerPoint decks (Rebellions 2026 Deck Guide). Use when
   building or restyling charts, graphs, data tables, KPI tiles, dashboards,
   architecture or hardware schematics, landing pages, mockups or slides that must
-  look Rebellions-branded, or when an existing visual uses off-palette colors or
-  a non-Pretendard font and needs the brand applied.
+  look Rebellions-branded, or when an existing visual uses off-palette colors,
+  a non-Pretendard font, sentence-style titles or crowded annotations and needs
+  the brand applied.
 ---
 
 # Rebellions design system
@@ -97,8 +98,7 @@ families.
 
 - Chart and table text is **never below 14** (pt or px). Footnotes are the one
   exception.
-- Title the visual with the insight: "TCO drops 42% at equal throughput", not
-  "TCO comparison". Supporting-headline style.
+- Titles use the supporting-headline style; their wording follows § Copy.
 - Numbers in tables and KPIs use tabular figures (`font-variant-numeric: tabular-nums`, `tnum`).
 - When a format has separate Latin and East-Asian font slots (OOXML `<a:latin>`
   / `<a:ea>`, Word `w:eastAsia`), set **both** to the same Pretendard weight;
@@ -108,6 +108,35 @@ families.
 
 **Done when:** every text run is a Pretendard weight from the table, nothing in a
 chart or table is under 14, and the East-Asian slot matches where one exists.
+
+## Copy
+
+- **English.** Titles, labels, legends, table headers, KPI labels, footnotes and
+  diagram text are English unless the user asks for another language. Product
+  and proper names stay as they are; the Korean-capable font stack stays for
+  them.
+- **Titles are noun phrases, not sentences.** No finite verb, no terminal
+  period, about eight words at most. The insight still goes in the title,
+  compressed into the phrase:
+
+  | Sentence (no) | Label only (no) | Noun phrase (yes) |
+  |---|---|---|
+  | TCO drops 42% at equal throughput. | TCO comparison | 42% lower TCO at equal throughput |
+  | REBEL delivers 88 tok/s, 44% over H100 | Decode throughput | 88 tok/s on REBEL, 44% over H100 |
+  | Prefill dominates the step time | Step-time breakdown | Prefill-bound step time |
+
+  The same rule applies to slide headlines, takeaway lines, section headers,
+  KPI labels and legend entries.
+- **Minimal annotation.** A view carries the title, axis titles with units,
+  data labels on the highlighted series, and one source line. Add at most one
+  further annotation, attached to the green element, and only when the visual
+  is misread without it. No callout boxes, explanatory arrows, per-point notes
+  or subtitles restating the title; explanation goes in the surrounding prose
+  or speaker notes.
+
+**Done when:** every text run is English, every title reads as a noun phrase,
+and nothing on the visual beyond the list above remains except one annotation
+at most.
 
 ## Charts
 
@@ -132,7 +161,7 @@ Same rules in every library:
   width and use identical palettes.
 
 **Done when:** exactly one green series or element per chart, horizontal grid
-only, legend top or absent, title states the insight.
+only, legend top or absent, noun-phrase title carrying the insight.
 
 ## Tables
 
@@ -213,7 +242,7 @@ Asset paths resolve as `${CLAUDE_SKILL_DIR}/assets/<file>`.
 ## Workflow
 
 1. **Decide the message.** Name the one element that will be Neon Green and the
-   one sentence the title will say. Ask the user only if the highlight is
+   noun phrase the title will be (§ Copy). Ask the user only if the highlight is
    ambiguous (two candidate products, two candidate metrics).
    **Done when:** you can write the title and point at the green element.
 2. **Pick the surface and medium.** Light or dark; then the row in Medium
@@ -224,8 +253,9 @@ Asset paths resolve as `${CLAUDE_SKILL_DIR}/assets/<file>`.
    series explicitly; never rely on a library's default cycle to land green on
    the right series.
    **Done when:** the visual exists with palette-only colors and Pretendard.
-4. **Add the takeaway and the source line.** Supporting-headline title; 8 pt /
-   12 px footnote with source and units if the data has them.
+4. **Add the title and the source line.** Noun-phrase title in
+   supporting-headline style; 8 pt / 12 px footnote with source and units if
+   the data has them. Nothing else unless § Copy allows it.
 5. **Verify.**
    ```bash
    python3 ${CLAUDE_SKILL_DIR}/scripts/check_colors.py <files>
@@ -247,6 +277,8 @@ Asset paths resolve as `${CLAUDE_SKILL_DIR}/assets/<file>`.
 - [ ] Chart / table text ≥ 14; footnote is the only smaller text.
 - [ ] Horizontal gridlines only; legend top or absent; data labels on the key series.
 - [ ] Table is one of the three types; real table / chart objects, never shapes.
-- [ ] Title states the insight; source line present when data has a source.
+- [ ] All text English; titles are short noun phrases carrying the insight, no sentences.
+- [ ] Annotation limited to title, axis titles, key data labels, source, and at most one note on the green element.
+- [ ] Source line present when data has a source.
 - [ ] Inside the safe margin (36 pt) or gutter; no horizontal page scroll.
 - [ ] `check_colors.py` exits 0 on the produced files.
