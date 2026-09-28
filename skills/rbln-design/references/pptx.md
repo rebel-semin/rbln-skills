@@ -1,14 +1,14 @@
 # PowerPoint implementation (Rebellions 2026 Deck Guide)
 
-Medium-specific mechanics for `.pptx` decks. The brand rules themselves —
-palette, typography, one-highlight rule, table types — are in `SKILL.md`; this
+Medium-specific mechanics for `.pptx` decks. The brand rules themselves (palette,
+typography, one-highlight rule, table types) are in `SKILL.md`; this
 file says how to realize them with real OOXML charts and tables. Everything here
 is transcribed from the Deck Guide slides (Overview / Typography Guidelines /
 Color Guidelines / Graph Guidelines_W / Chart Guidelines_W).
 
 ## When this file applies
 
-You are editing a Rebellions-branded deck with a PowerPoint tool surface — adding
+You are editing a Rebellions-branded deck with a PowerPoint tool surface: adding
 or restyling a chart, a comparison or spec table, a benchmark table or a KPI
 callout. Pure text slides, covers and agenda slides are covered by the master
 layouts directly.
@@ -18,7 +18,7 @@ layouts directly.
 - A PowerPoint editing surface exposing `list_slide_shapes`, `edit_slide_chart`,
   `edit_slide_xml`, `execute_office_js`, `verify_slides` and
   `verify_slide_visual`. Without real chart and table tools you cannot satisfy
-  this guide — do not fall back to drawing shapes.
+  this guide: do not fall back to drawing shapes.
 - Pretendard installed in **all weights** (ExtraLight, Regular, Medium,
   SemiBold). A missing weight is substituted silently and the hierarchy
   collapses with no error.
@@ -29,7 +29,7 @@ layouts directly.
   Rebellions' technical substance.**
 - Use the configurations already present in the slide master; do not invent new
   visual systems.
-- Avoid individual design modifications outside the established guidelines — no
+- Avoid individual design modifications outside the established guidelines: no
   custom gradients, shadows, 3-D effects, or off-palette colors.
 - Never simulate a chart with geometric shapes. Always use `edit_slide_chart`
   (real OOXML charts) or `addTable` for tabular data.
@@ -53,7 +53,7 @@ layouts directly.
 | Off-white (light bg, table zebra) | `#F6F8FA` |
 | White | `#FFFFFF` |
 
-**Secondary colors** — use only when more than one categorical accent is
+**Secondary colors**: use only when more than one categorical accent is
 unavoidable:
 `#174BEB` blue · `#9A4EFF` purple · `#F7318B` pink · `#FF3333` red ·
 `#FFD527` yellow
@@ -63,7 +63,7 @@ unavoidable:
 1. **Highlight key data with Neon Green.** Exactly one series (or one bar, one
    row, one KPI) carries `#52F756`; everything else stays neutral.
 2. For **hardware schematics / diagram-heavy visuals**, maintain a **6:2:2
-   ratio — Neon Green : Secondary : Secondary** so the point color stays
+   ratio: Neon Green : Secondary : Secondary** so the point color stays
    dominant but readable.
 3. Neon Green is a light color: text placed on it must be `#1B1F23`, never
    white. White or `#F6F8FA` text belongs on `#1B1F23` / `#24292F`.
@@ -75,7 +75,7 @@ values listed above.
 
 ## Typography (Typography Guidelines)
 
-Use **Pretendard for both Korean and English** — one font family across the
+Use **Pretendard for both Korean and English**: one font family across the
 entire deck. Do not mix in Söhne or any other face; only the Pretendard weight
 changes by role.
 
@@ -84,7 +84,7 @@ changes by role.
 | Headline | Pretendard SemiBold | 44 or 32 pt | 0.9 |
 | Supporting headline / summary | Pretendard Medium | 28 or 24 pt | 1.1 |
 | Body (descriptions, overviews) | Pretendard Regular | 20 or 14 pt | 1.1 |
-| Footnote (source, notes) | Pretendard ExtraLight | 8 pt | — |
+| Footnote (source, notes) | Pretendard ExtraLight | 8 pt | n/a |
 
 Applied to data visuals:
 
@@ -107,7 +107,7 @@ Applied to data visuals:
   different family.
 
 **Done when:** no text in the visual is under 14 pt except an intentional 8 pt
-footnote, and every font face — latin and east-asian — is a Pretendard weight
+footnote, and every font face (latin and east-asian) is a Pretendard weight
 from the table.
 
 ## Graphs (Graph Guidelines_W)
@@ -131,7 +131,7 @@ Build with `edit_slide_chart`:
   also set `<c:overlap val="100"/>`.
 - Line charts: 2.25 pt stroke, markers only on the highlighted series.
 - Do not rely on `<c:style>` defaults for series color when a specific series
-  must be highlighted — set `<c:spPr>` explicitly for that series, and leave the
+  must be highlighted: set `<c:spPr>` explicitly for that series, and leave the
   rest neutral.
 
 **Done when:** exactly one series is Neon Green, all others neutral, and
@@ -145,26 +145,26 @@ Build with `edit_slide_chart`:
 
 Pick exactly one of three table types.
 
-**Standard Type** — neutral data listing
+**Standard Type**: neutral data listing
 
 - Header row fill `#24292F`, header font `#FFFFFF` bold 14 pt, centered.
 - Body rows: white / `#F6F8FA` alternating, font `#1B1F23` 14 pt.
 - Row separators `#D9E4ED`; no vertical borders.
 
-**Highlight Type 1** — emphasize a column (e.g. the Rebellions product column)
+**Highlight Type 1**: emphasize a column (e.g. the Rebellions product column)
 
 - That column's header fill `#52F756` with `#1B1F23` bold text; its body cells
   `#F6F8FA` with `#1B1F23` bold values.
 - All other columns stay Standard Type.
 
-**Highlight Type 2** — emphasize a row or individual metrics
+**Highlight Type 2**: emphasize a row or individual metrics
 
 - Highlighted row fill `#52F756`, text `#1B1F23` bold; or leave the row neutral
   and set only the winning values to `#52F756` bold text on `#1B1F23`.
 
 Table mechanics:
 
-- Always `shapes.addTable(rows, cols, {values, left, top, width, height})` —
+- Always `shapes.addTable(rows, cols, {values, left, top, width, height})`:
   never text boxes.
 - Left-align label columns, right-align numeric columns, center headers.
   `verticalAlignment = "Middle"`.
@@ -182,7 +182,7 @@ than one column or row carries Neon Green.
 
 - Slide canvas is 960 × 540 pt; keep a 36 pt safe margin on all sides.
 - Prefer the master layouts `Slide_W_1`, `Slide_W_2`, `Slide_W_Full` for data
-  slides. `Graph Guidelines_W` and `Chart Guidelines_W` are reference layouts —
+  slides. `Graph Guidelines_W` and `Chart Guidelines_W` are reference layouts:
   read them for spec, do not overwrite them.
 - Never hardcode the content top edge. Call `list_slide_shapes` first, then
   start content at `title.top + title.height + ≥10 pt`.
@@ -204,7 +204,7 @@ than one column or row carries Neon Green.
 2. `list_slide_shapes` on the target slide; measure the title band and available
    content box.
    **Done when:** you have numeric left/top/width/height for the visual.
-3. Build the visual — `edit_slide_chart` for graphs, `execute_office_js` +
+3. Build the visual: `edit_slide_chart` for graphs, `execute_office_js` +
    `addTable` for tables, `edit_slide_xml` for KPI callouts.
    **Done when:** the shape exists on the slide with palette-compliant fills.
 4. Add the takeaway line (supporting headline, 24–28 pt) and, if the data has a
@@ -225,6 +225,7 @@ than one column or row carries Neon Green.
       `<a:ea>` matched.
 - [ ] Legend top or absent; horizontal gridlines only in `#D9E4ED`.
 - [ ] Data labels visible on the key series.
-- [ ] Real chart / real table — never shapes imitating data.
+- [ ] Real chart / real table: never shapes imitating data.
 - [ ] Content inside the 36 pt safe area, below the measured title band.
 - [ ] All text English; title and takeaway are noun phrases; no callouts beyond one on the green element.
+- [ ] No em-dash in any text run, including speaker notes.

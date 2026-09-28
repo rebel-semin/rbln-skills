@@ -2,8 +2,8 @@
 
 Assets:
 
-- `${CLAUDE_SKILL_DIR}/assets/rbln.mplstyle` — matplotlib style sheet
-- `${CLAUDE_SKILL_DIR}/assets/rbln_plotly.py` — plotly templates `rbln` and `rbln_dark`, plus `highlight()` and `table()` helpers
+- `${CLAUDE_SKILL_DIR}/assets/rbln.mplstyle`: matplotlib style sheet
+- `${CLAUDE_SKILL_DIR}/assets/rbln_plotly.py`: plotly templates `rbln` and `rbln_dark`, plus `highlight()` and `table()` helpers
 
 Verified 2026-09-03 with matplotlib 3.9.4 and plotly 7.0.0 (kaleido for PNG export),
 Pretendard installed system-wide on macOS.
@@ -84,7 +84,7 @@ sns.set_theme(style=None, rc=plt.rcParams)              # keep the mplstyle, do 
 sns.set_palette(["#52F756", "#24292F", "#BBC4CF", "#D9E4ED"])
 ```
 
-Call `plt.style.use(...)` *before* `sns.set_theme`, and pass `style=None` — the
+Call `plt.style.use(...)` *before* `sns.set_theme`, and pass `style=None`: the
 seaborn defaults re-enable vertical gridlines and change the font.
 
 ## plotly
@@ -105,7 +105,7 @@ no zero line or axis line, legend horizontal above the plot, `bargap 0.4`, line
 width 2.25, marker 8, bar labels outside, pie `sort=False` so the first slice
 stays first.
 
-Tables — one call, one type:
+Tables: one call, one type:
 
 ```python
 fig = go.Figure(rbln_plotly.table(["Metric", "H100", "REBEL"],

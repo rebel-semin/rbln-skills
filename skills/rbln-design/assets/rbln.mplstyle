@@ -2,7 +2,7 @@
 # Usage:  import matplotlib.pyplot as plt; plt.style.use("/path/to/rbln.mplstyle")
 # Palette and type roles: Rebellions 2026 Deck Guide. Sizes are for a 10x5.6 in figure at 200 dpi.
 # Series order: Neon Green for the ONE highlighted series, then neutrals. Secondary accents come last
-# and mean the chart has too many series — split it before reaching them.
+# and mean the chart has too many series: split it before reaching them.
 
 font.family:          sans-serif
 font.sans-serif:      Pretendard, Pretendard Variable, Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, DejaVu Sans

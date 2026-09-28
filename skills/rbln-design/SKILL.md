@@ -1,16 +1,16 @@
 ---
 name: rbln-design
 description: >-
-  Apply the Rebellions brand visual system — Neon Green (#52F756) point color,
-  neutral palette, Pretendard typography, one-highlight rule — to any design
+  Apply the Rebellions brand visual system (Neon Green #52F756 point color,
+  neutral palette, Pretendard typography, one-highlight rule) to any design
   output: HTML/React artifacts and dashboards, web pages and UI, SVG and Mermaid
   diagrams, matplotlib / seaborn / plotly figures, Word / PDF / Markdown reports,
   Excel tables, and PowerPoint decks (Rebellions 2026 Deck Guide). Use when
   building or restyling charts, graphs, data tables, KPI tiles, dashboards,
   architecture or hardware schematics, landing pages, mockups or slides that must
   look Rebellions-branded, or when an existing visual uses off-palette colors,
-  a non-Pretendard font, sentence-style titles or crowded annotations and needs
-  the brand applied.
+  a non-Pretendard font, sentence-style titles, em-dashes or crowded
+  annotations and needs the brand applied.
 ---
 
 # Rebellions design system
@@ -24,7 +24,7 @@ the guide.
 ## When to use
 
 - Any chart, table, KPI callout, dashboard, diagram, page or slide that will be
-  seen as Rebellions work — external decks, customer reports, internal
+  seen as Rebellions work: external decks, customer reports, internal
   dashboards, benchmark write-ups, README figures, artifacts shown to the team.
 - Restyling something that already exists but uses another palette or font.
 
@@ -37,7 +37,7 @@ brand work.
 > technical substance.
 
 Which means: neutral by default, one deliberate accent, real data marks (never
-shapes imitating a chart), no decoration — no gradients, shadows, 3-D, rounded
+shapes imitating a chart), no decoration: no gradients, shadows, 3-D, rounded
 chart elements, or off-palette colors. If a visual needs more than the system
 offers, it is carrying more than one message; split it.
 
@@ -48,12 +48,12 @@ Twelve colors, nothing else (full pairings and contrast in
 
 | Role | Hex |
 |---|---|
-| **Neon Green — point / highlight** | `#52F756` |
-| Near-black — text on light, background on dark | `#1B1F23` |
-| Dark gray — series 2, panels, table header | `#24292F` |
-| Mid gray — series 3, muted text on dark | `#BBC4CF` |
-| Light blue-gray — series 4, gridlines, borders | `#D9E4ED` |
-| Off-white — light surface, zebra rows | `#F6F8FA` |
+| **Neon Green: point / highlight** | `#52F756` |
+| Near-black: text on light, background on dark | `#1B1F23` |
+| Dark gray: series 2, panels, table header | `#24292F` |
+| Mid gray: series 3, muted text on dark | `#BBC4CF` |
+| Light blue-gray: series 4, gridlines, borders | `#D9E4ED` |
+| Off-white: light surface, zebra rows | `#F6F8FA` |
 | White | `#FFFFFF` |
 | Secondary (only when a further category color is unavoidable) | `#174BEB` blue · `#9A4EFF` purple · `#F7318B` pink · `#FF3333` red · `#FFD527` yellow |
 
@@ -62,7 +62,7 @@ Rules:
 1. **One highlight.** Exactly one series, bar, row, column, tile, block or edge
    per view is Neon Green. Everything else is neutral. If you cannot name the
    one element that will be green, the message is not decided yet.
-2. **Schematics use 6 : 2 : 2** — Neon Green : secondary : secondary — so the
+2. **Schematics use 6 : 2 : 2** (Neon Green : secondary : secondary) so the
    point color stays dominant when a diagram needs three subsystems.
 3. **Text on Neon Green is `#1B1F23`**, never white.
 4. **No tints, shades, alpha steps or gradients** of any palette color. A
@@ -74,7 +74,7 @@ Rules:
    Green text is fine on `#1B1F23` / `#24292F` (11.7 : 1), which is how dark
    dashboards show the highlighted number.
 
-Series order — light: `#52F756 → #24292F → #BBC4CF → #D9E4ED`;
+Series order on light: `#52F756 → #24292F → #BBC4CF → #D9E4ED`;
 dark surface: `#52F756 → #D9E4ED → #BBC4CF` (`#24292F` vanishes on `#1B1F23`).
 Reaching a fifth color means the chart is too crowded.
 
@@ -85,7 +85,7 @@ and one element is green.
 
 **Pretendard, for Korean and English alike**, in one family; only the weight
 changes by role. Never mix in another face. Fallback stack when Pretendard is
-unavailable: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system sans` —
+unavailable: `"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system sans`,
 always with a Korean-capable face, or mixed-script text splits into two
 families.
 
@@ -94,7 +94,7 @@ families.
 | Headline | SemiBold 600 | 44 / 32 | 44 / 32 | 0.9 deck · 1.0 screen |
 | Supporting headline, chart title, takeaway | Medium 500 | 28 / 24 | 28 / 24 | 1.1 |
 | Body, axis labels, legend, data labels, table cells | Regular 400 | 20 / 14 | 14 (16 for long reading) | 1.1 deck · 1.5 screen |
-| Footnote, source, units | ExtraLight 200 | 8 | 12 | — |
+| Footnote, source, units | ExtraLight 200 | 8 | 12 | n/a |
 
 - Chart and table text is **never below 14** (pt or px). Footnotes are the one
   exception.
@@ -127,6 +127,10 @@ chart or table is under 14, and the East-Asian slot matches where one exists.
 
   The same rule applies to slide headlines, takeaway lines, section headers,
   KPI labels and legend entries.
+- **No em-dashes (U+2014).** Not in titles, labels, legends, tables, notes or
+  surrounding prose. Use a comma, colon, semicolon or parentheses, or split
+  the phrase: `88 tok/s on REBEL, 44% over H100`, with a comma where an
+  em-dash would have gone. The en-dash stays for numeric ranges only (`60–80 %`).
 - **Minimal annotation.** A view carries the title, axis titles with units,
   data labels on the highlighted series, and one source line. Add at most one
   further annotation, attached to the green element, and only when the visual
@@ -135,8 +139,8 @@ chart or table is under 14, and the East-Asian slot matches where one exists.
   or speaker notes.
 
 **Done when:** every text run is English, every title reads as a noun phrase,
-and nothing on the visual beyond the list above remains except one annotation
-at most.
+no em-dash appears anywhere, and nothing on the visual beyond the list above
+remains except one annotation at most.
 
 ## Charts
 
@@ -147,7 +151,7 @@ Same rules in every library:
 - Gridlines **horizontal only**, hairline, `#D9E4ED` on light / `#24292F` on
   dark. No vertical gridlines, axis lines, zero line, or chart border.
 - Category ticks hidden; value ticks outward.
-- Legend at the top, left-aligned, or **absent** for single-series charts —
+- Legend at the top, left-aligned, or **absent** for single-series charts;
   label the bar directly instead.
 - Data labels on the highlighted series at body size; if labels crowd, keep
   them only there.
@@ -170,15 +174,15 @@ Pick exactly one of three types (Chart Guidelines_W):
 | Type | Use | Spec |
 |---|---|---|
 | **Standard** | neutral data listing | header fill `#24292F`, header text `#FFFFFF` bold, centered; body rows white / `#F6F8FA` alternating, text `#1B1F23`; rules `#D9E4ED` horizontal only, no vertical borders |
-| **Highlight 1 — column** | emphasize one column (usually the Rebellions product) | that column's header `#52F756` with `#1B1F23` bold text; its body cells `#F6F8FA` with `#1B1F23` bold; other columns Standard |
-| **Highlight 2 — row / cells** | emphasize one row or the winning metrics | row fill `#52F756`, text `#1B1F23` bold; or row neutral and only winning values `#52F756` bold on `#1B1F23` |
+| **Highlight 1: column** | emphasize one column (usually the Rebellions product) | that column's header `#52F756` with `#1B1F23` bold text; its body cells `#F6F8FA` with `#1B1F23` bold; other columns Standard |
+| **Highlight 2: row / cells** | emphasize one row or the winning metrics | row fill `#52F756`, text `#1B1F23` bold; or row neutral and only winning values `#52F756` bold on `#1B1F23` |
 
 - Label columns left-aligned, numeric columns right-aligned, headers centered,
   vertical middle. Body text 14; ~30 pt/px row height. Split a long table rather
   than shrink it.
 - Never two highlighted columns, never a column and a row together.
 - Always a real table object (HTML `<table>`, OOXML `<a:tbl>`, `go.Table`,
-  docx table, xlsx cells) — never text boxes lined up.
+  docx table, xlsx cells): never text boxes lined up.
 
 **Done when:** the table matches one type and at most one column or row carries
 green.
@@ -232,8 +236,8 @@ Mechanics for SVG and Mermaid in [references/diagrams.md](references/diagrams.md
 | HTML / CSS / React, Claude artifacts, dashboards, landing pages, UI | [references/web.md](references/web.md) | `assets/rbln-tokens.css`, `assets/rbln-tokens.json` |
 | Chart.js, Recharts, ECharts, D3, Plotly.js, Vega-Lite | web.md § Chart libraries | tokens |
 | matplotlib, seaborn, plotly (Python), pandas Styler | [references/python.md](references/python.md) | `assets/rbln.mplstyle`, `assets/rbln_plotly.py` |
-| SVG, Mermaid, architecture / hardware diagrams | [references/diagrams.md](references/diagrams.md) | — |
-| PowerPoint `.pptx` through slide tools (OOXML, Office.js) | [references/pptx.md](references/pptx.md) | — |
+| SVG, Mermaid, architecture / hardware diagrams | [references/diagrams.md](references/diagrams.md) | none |
+| PowerPoint `.pptx` through slide tools (OOXML, Office.js) | [references/pptx.md](references/pptx.md) | none |
 | Word, PDF, Excel, Markdown | this file, § Documents | tokens JSON for hex values |
 | Design canvas / mockups | this file + web.md § Type scale | tokens CSS |
 
@@ -260,9 +264,11 @@ Asset paths resolve as `${CLAUDE_SKILL_DIR}/assets/<file>`.
    ```bash
    python3 ${CLAUDE_SKILL_DIR}/scripts/check_colors.py <files>
    python3 ${CLAUDE_SKILL_DIR}/scripts/check_colors.py --pair 52F756 FFFFFF   # any text/background pair in doubt
+   grep -n $'\u2014' <files>
    ```
-   Exit 0 means no off-palette hex. Then look at the output — screenshot, PNG,
-   rendered slide — in the surface it will be shown on (both color schemes for
+   Exit 0 means no off-palette hex; the grep must print nothing (run it on the
+   generating script when the output is a PNG). Then look at the output (screenshot, PNG,
+   rendered slide) in the surface it will be shown on (both color schemes for
    web) and walk the checklist. Fix and re-run until clean.
    **Done when:** the checklist passes and the medium's own verifier
    (`verify_slides`, browser screenshot, saved PNG) shows the intended
@@ -278,6 +284,7 @@ Asset paths resolve as `${CLAUDE_SKILL_DIR}/assets/<file>`.
 - [ ] Horizontal gridlines only; legend top or absent; data labels on the key series.
 - [ ] Table is one of the three types; real table / chart objects, never shapes.
 - [ ] All text English; titles are short noun phrases carrying the insight, no sentences.
+- [ ] No em-dash (U+2014) anywhere; en-dash only in numeric ranges.
 - [ ] Annotation limited to title, axis titles, key data labels, source, and at most one note on the green element.
 - [ ] Source line present when data has a source.
 - [ ] Inside the safe margin (36 pt) or gutter; no horizontal page scroll.

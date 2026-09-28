@@ -1,7 +1,7 @@
 # Diagrams: SVG, Mermaid, architecture and hardware schematics
 
 Source rule (Color Guidelines): for hardware schematics and diagram-heavy
-visuals keep a **6 : 2 : 2** ratio — Neon Green : secondary : secondary. The
+visuals keep a **6 : 2 : 2** ratio: Neon Green : secondary : secondary. The
 rest of this file is the skill's extension of that rule to drawing tools.
 
 ## What gets which color
@@ -18,7 +18,7 @@ rest of this file is the skill's extension of that rule to drawing tools.
 | Labels on edges | `#24292F` 12–14 px, white halo (`paint-order: stroke`) | `#BBC4CF` |
 
 Count colored elements before drawing: if green is not the majority of the
-colored surface, the diagram is telling several stories — split it.
+colored surface, the diagram is telling several stories: split it.
 
 ## SVG mechanics
 
@@ -48,7 +48,7 @@ colored surface, the diagram is telling several stories — split it.
 
 - Canvas 960 × 540 (same aspect as a slide) or the container's width; scale
   with `viewBox`, never fixed pixels.
-- Square corners on blocks (`rx="0"`) — the deck's tables and bars are square;
+- Square corners on blocks (`rx="0"`): the deck's tables and bars are square;
   4 px is the most a UI card gets.
 - Strokes: 1 px block outlines, 1.5 px edges, 2.25 px the highlighted edge.
 - Text 14 px minimum inside blocks; 12 px minimum on edge labels; one weight
@@ -91,7 +91,7 @@ flowchart LR
 ```
 
 `fontFamily` must sit at the **top level** of the init object. Inside
-`themeVariables` Mermaid 11 ignores it and the diagram inherits the page font —
+`themeVariables` Mermaid 11 ignores it and the diagram inherits the page font:
 which for a `<pre class="mermaid">` block is monospace, and node labels get
 clipped because widths were measured in the wrong face (verified with
 mermaid@11 on 2026-09-03). `classDef hl` is the one highlight; `classDef data` /

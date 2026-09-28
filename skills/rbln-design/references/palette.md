@@ -22,7 +22,7 @@ with `scripts/check_colors.py --matrix` (WCAG 2.x relative luminance).
 
 No other hex value is allowed. No tints, shades, opacity steps, gradients or
 shadows derived from these. If a visual seems to need more colors, it has too
-many series or too many categories — split it.
+many series or too many categories: split it.
 
 ## Text pairings (contrast)
 
@@ -36,7 +36,7 @@ many series or too many categories — split it.
 | `#BBC4CF` | `#1B1F23` / `#24292F` | 9.4 / 8.3 | muted text on dark |
 | `#D9E4ED` | `#1B1F23` | 12.8 | secondary text on dark |
 | `#52F756` | `#1B1F23` / `#24292F` | 11.7 / 10.3 | Neon Green text is fine **on dark** |
-| `#52F756` | `#FFFFFF` / `#F6F8FA` | 1.4 / 1.3 | **fails** — never Neon Green text on light |
+| `#52F756` | `#FFFFFF` / `#F6F8FA` | 1.4 / 1.3 | **fails**: never Neon Green text on light |
 | `#BBC4CF` | `#FFFFFF` | 1.8 | **fails** as web text; deck footnotes accept it at 8 pt on print/slides only |
 | `#174BEB` | `#FFFFFF` | 6.5 | the one secondary usable as body text on light |
 | `#9A4EFF` | `#FFFFFF` | 4.3 | large text (≥ 24 px / 18 pt) only |
@@ -58,10 +58,10 @@ Consequences for media the deck guide did not cover:
 
 | Slot | Light surface | Dark surface (`#1B1F23`) |
 |---|---|---|
-| 1 — the story | `#52F756` | `#52F756` |
+| 1: the story | `#52F756` | `#52F756` |
 | 2 | `#24292F` | `#D9E4ED` |
 | 3 | `#BBC4CF` | `#BBC4CF` |
-| 4 | `#D9E4ED` | `#24292F` (barely visible — avoid) |
+| 4 | `#D9E4ED` | `#24292F` (barely visible, avoid) |
 | 5+ | secondary accents, and the chart is too crowded | same |
 
 On dark surfaces `#24292F` disappears against the background, so the neutral
@@ -70,14 +70,14 @@ order is reversed. Prefer ≤ 3 series on dark.
 ## Sequential / ordinal encodings (extension)
 
 The deck guide has no heatmap or choropleth rule and forbids tints. When a
-sequential encoding is unavoidable, step through the neutrals in order —
-`#F6F8FA → #D9E4ED → #BBC4CF → #24292F` (4 steps max) — and reserve `#52F756`
+sequential encoding is unavoidable, step through the neutrals in order,
+`#F6F8FA → #D9E4ED → #BBC4CF → #24292F` (4 steps max), and reserve `#52F756`
 for the single cell, bin or region the visual is about. Do not interpolate
 between palette colors.
 
 ## Diagram ratio
 
-Hardware schematics and diagram-heavy visuals: **6 : 2 : 2** — Neon Green :
+Hardware schematics and diagram-heavy visuals: **6 : 2 : 2**: Neon Green :
 secondary : secondary. Green remains dominant; the two secondaries distinguish
 subsystems (e.g. blue = data path, purple = control). Everything else is neutral
 strokes and fills.

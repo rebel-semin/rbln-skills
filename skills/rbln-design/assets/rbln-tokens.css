@@ -13,14 +13,14 @@
 
 :root {
   /* ---- raw palette (the only colors allowed) ---- */
-  --rbln-green:     #52F756;   /* point / highlight — exactly one per view */
+  --rbln-green:     #52F756;   /* point / highlight: exactly one per view */
   --rbln-black:     #1B1F23;   /* near-black: text, dark background */
   --rbln-gray-900:  #24292F;   /* dark gray: series 2, panels, table header */
   --rbln-gray-400:  #BBC4CF;   /* mid gray: series 3, muted text on dark */
   --rbln-gray-200:  #D9E4ED;   /* light blue-gray: series 4, gridlines, borders */
   --rbln-gray-050:  #F6F8FA;   /* off-white: light surface, zebra rows */
   --rbln-white:     #FFFFFF;
-  --rbln-blue:      #174BEB;   /* secondary accents — only when a 2nd/3rd category color is unavoidable */
+  --rbln-blue:      #174BEB;   /* secondary accents: only when a 2nd/3rd category color is unavoidable */
   --rbln-purple:    #9A4EFF;
   --rbln-pink:      #F7318B;
   --rbln-red:       #FF3333;
@@ -30,7 +30,7 @@
   --rbln-bg:             var(--rbln-white);
   --rbln-surface:        var(--rbln-gray-050);
   --rbln-fg:             var(--rbln-black);
-  --rbln-fg-muted:       var(--rbln-gray-900);  /* #BBC4CF is 1.8:1 on white — never body text on light */
+  --rbln-fg-muted:       var(--rbln-gray-900);  /* #BBC4CF is 1.8:1 on white: never body text on light */
   --rbln-border:         var(--rbln-gray-200);
   --rbln-grid:           var(--rbln-gray-200);
   --rbln-highlight:      var(--rbln-green);
@@ -58,8 +58,8 @@
   --rbln-size-h2:       1.75rem;  /* 28 */
   --rbln-size-h3:       1.5rem;   /* 24 */
   --rbln-size-lead:     1.25rem;  /* 20 */
-  --rbln-size-body:     0.875rem; /* 14 — also the minimum for chart/table text */
-  --rbln-size-caption:  0.75rem;  /* 12 — footnotes, sources, units */
+  --rbln-size-body:     0.875rem; /* 14: also the minimum for chart/table text */
+  --rbln-size-caption:  0.75rem;  /* 12: footnotes, sources, units */
 
   --rbln-leading-headline: 1.0;   /* deck 0.9; 1.0 keeps descenders inside the box on screen */
   --rbln-leading-support:  1.1;
@@ -85,7 +85,7 @@
     --rbln-grid:          var(--rbln-gray-900);
     --rbln-series-2:      var(--rbln-gray-200);   /* #24292F vanishes on #1B1F23 */
     --rbln-series-3:      var(--rbln-gray-400);
-    --rbln-series-4:      var(--rbln-gray-900);   /* barely visible — keep dark charts to 3 series */
+    --rbln-series-4:      var(--rbln-gray-900);   /* barely visible: keep dark charts to 3 series */
     --rbln-table-head-bg: var(--rbln-gray-900);
     --rbln-table-head-fg: var(--rbln-gray-050);
     --rbln-table-zebra:   var(--rbln-gray-900);
@@ -135,11 +135,11 @@
 .rbln-table tbody tr:nth-child(even) td { background: var(--rbln-table-zebra); }
 .rbln-table td.rbln-label { text-align: left; }
 .rbln-table td.rbln-value { text-align: right; font-variant-numeric: tabular-nums; }
-/* Highlight Type 1 — one column (mark the <th> and its <td>s with .rbln-hl). Selectors carry both
+/* Highlight Type 1: one column (mark the <th> and its <td>s with .rbln-hl). Selectors carry both
    table classes so they outrank the zebra rule on even rows. */
 .rbln-table.rbln-table--col th.rbln-hl { background: var(--rbln-highlight); color: var(--rbln-on-highlight); }
 .rbln-table.rbln-table--col tbody td.rbln-hl { background: var(--rbln-gray-050); color: var(--rbln-black); font-weight: 700; }
-/* Highlight Type 2 — one row (mark the <tr> with .rbln-hl) or single winning cells (td.rbln-win) */
+/* Highlight Type 2: one row (mark the <tr> with .rbln-hl) or single winning cells (td.rbln-win) */
 .rbln-table.rbln-table--row tbody tr.rbln-hl td { background: var(--rbln-highlight); color: var(--rbln-on-highlight); font-weight: 700; }
 .rbln-table.rbln-table--row tbody td.rbln-win { background: var(--rbln-black); color: var(--rbln-highlight); font-weight: 700; }
 

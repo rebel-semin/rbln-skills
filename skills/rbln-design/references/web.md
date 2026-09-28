@@ -34,7 +34,7 @@ without it, add Noto Sans KR from Google Fonts as the Korean-capable fallback:
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@200;400;500;600&display=swap">
 ```
 
-Never leave the stack without a Korean-capable face — mixed-script text will
+Never leave the stack without a Korean-capable face: mixed-script text will
 render Korean in a different family, which is the exact failure the guide bans.
 
 ## 2. Type scale (extension of the deck scale)
@@ -50,7 +50,7 @@ render Korean in a different family, which is the exact failure the guide bans.
 | Caption / source | 12 px | 200 or 400 | 1.4 | Footnote 8 pt |
 
 Chart and table text never goes below 14 px; captions never below 12 px. Pretendard
-ExtraLight (200) at 12 px is legible on desktop but thin on low-DPI screens — use
+ExtraLight (200) at 12 px is legible on desktop but thin on low-DPI screens: use
 400 for captions that must be read, 200 for decorative source lines.
 
 Title the visual with the insight as an English noun phrase, in H3 weight 500:
